@@ -103,7 +103,7 @@ class CityAirRequest:
                 "Filter": {
                     'OnlyLastPacket': True,
                     "SerialNumber": serial_number}}
-        url = self.device_data_url
+        url = f'https://cityair.io/backend-api/request.php?map=/DevicesApi/GetPackets2'
         try:
             response = requests.post(url, json=body, timeout=self.request_timeout)
             response.raise_for_status()
