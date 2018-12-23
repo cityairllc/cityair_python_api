@@ -1,6 +1,7 @@
 from plotly.offline import init_notebook_mode, plot, iplot
 from sklearn.metrics import mean_absolute_error, mean_squared_error, r2_score
 from matplotlib import pyplot as plt
+import matplotlib.dates  as mdates
 import plotly.graph_objs as go
 import pandas as pd
 import os
@@ -28,7 +29,11 @@ def graph_time(*dfs, descr=None, dropna=True, markers=False):
         plot(traces, filename=path, auto_open=False)
         print(f"graph saved at {path}")
     else:
-        iplot(traces)
+        try:
+            iplot(traces)
+        except ImportError as e:
+            print(e.__str__())
+
 
 
 def graph_corr(res, ref, descr=None):
@@ -61,5 +66,35 @@ def graph_corr(res, ref, descr=None):
         ax[i].grid()
     if descr:
         plt.savefig(f'./out/corr_{descr}.png')
+    else:
+        plt.show()
+
+
+def graph_time_matplotlib(df, serial_number="", save_file=True):
+    df = df.resample('10T').mean()
+    params_to_show = {
+        'PM2.5': 'grey',
+        'RH': 'royalblue',
+        'T': 'tomato',
+        'CO2': 'C0'
+    }
+    params = (list(filter(lambda param: param in list(params_to_show.keys()), df.columns)))
+    params.sort()
+    graph_count = len(params)
+    fig, ax = plt.subplots(nrows=graph_count, ncols=1, figsize=(10, 5 * graph_count), dpi=100)
+
+    x = [mdates.date2num(d) for d in df.index]
+    for i, param in enumerate(params):
+        y = df[param]
+        ax[i].plot(x, y, color=params_to_show[param])
+        ax[i].annotate(s=serial_number, xy=(0.03, 0.92), xycoords='axes fraction', fontweight='bold',
+                       backgroundcolor="w")
+        ax[i].set_ylabel(y.name)
+        ax[i].xaxis.set_major_formatter(mdates.DateFormatter('%H:%M\n%d %b'))
+        ax[i].grid()
+    if save_file:
+        path = f'{serial_number}_graph.png'
+        plt.savefig(path)
+        return (path)
     else:
         plt.show()

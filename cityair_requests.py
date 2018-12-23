@@ -132,6 +132,7 @@ class CityAirRequest:
                 f"request: {str(body).replace(self.psw, '***').replace(self.user, '***')}\n"
                 f"response {response.json()}")
 
+
     def get_device_data(self, serial_number, start_date=datetime.datetime.now() - datetime.timedelta(hours=1),
                         finish_date=datetime.datetime.now(), utc_hour_dif=7, print_response=True, print_json=False):
         start_date = self.to_date(start_date) - datetime.timedelta(hours=utc_hour_dif)
@@ -209,6 +210,11 @@ class CityAirRequest:
                 f"request: {str(body).replace(self.psw, '***').replace(self.user, '***')}\n"
                 f"response: {response.json()}")
         return df
+
+    def get_device_lastweek_data(self, serial_number):
+        finish_date = pd.to_datetime(self.get_last_packet(serial_number)['SendDate'])
+        start_date = finish_date - datetime.timedelta(days=7)
+        return self.get_device_data(serial_number, start_date, finish_date, print_json=True)
 
     def get_devices_data(self, serial_numbers, start_date=datetime.datetime.now() - datetime.timedelta(hours=1),
                          finish_date=datetime.datetime.now(), param='PM2.5', utc_hour_dif=7, print_response=True):
