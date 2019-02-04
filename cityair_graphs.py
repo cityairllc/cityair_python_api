@@ -20,8 +20,8 @@ def graph_time(*dfs, descr=None, dropna=True, markers=False):
             series = df[col]
             if dropna:
                 series.dropna(inplace=True)
-            traces.append(go.Scatter(x=series.index#.to_pydatetime()
-             , y=series, name=col, mode="markers" if markers else None))
+            traces.append(go.Scatter(x=series.index.to_series().apply(lambda x: x.isoformat())  # .to_pydatetime()
+                                     , y=series, name=col, mode="markers" if markers else None))
     if descr:
         if not os.path.exists("./out"):
             os.makedirs("./out")
@@ -33,7 +33,6 @@ def graph_time(*dfs, descr=None, dropna=True, markers=False):
             iplot(traces)
         except ImportError as e:
             print(e.__str__())
-
 
 
 def graph_corr(res, ref, descr=None):
@@ -90,7 +89,7 @@ def graph_time_matplotlib(df, serial_number="", save_file=True):
         ax[i].annotate(s=serial_number, xy=(0.03, 0.92), xycoords='axes fraction', fontweight='bold',
                        backgroundcolor="w")
         ax[i].set_ylabel(y.name)
-        ax[i].xaxis.set_major_formatter(mdates.DateFormatter('%H:%M\n%d %b'))
+        ax[i].xaxis.set_major_formatter(mdates.DateFormatter('%d %b'))
         ax[i].grid()
     if save_file:
         path = f'{serial_number}_graph.png'
