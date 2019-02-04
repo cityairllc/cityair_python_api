@@ -212,9 +212,12 @@ class CityAirRequest:
         return df
 
     def get_device_lastweek_data(self, serial_number):
-        finish_date = pd.to_datetime(self.get_last_packet(serial_number)['SendDate'])
-        start_date = finish_date - datetime.timedelta(days=7)
-        return self.get_device_data(serial_number, start_date, finish_date, print_json=True)
+        try:
+            finish_date = pd.to_datetime(self.get_last_packet(serial_number)['SendDate'])
+            start_date = finish_date - datetime.timedelta(days=7)
+            return self.get_device_data(serial_number, start_date, finish_date, print_json=False)
+        except Exception as e:
+            return pd.DataFrame()
 
     def get_devices_data(self, serial_numbers, start_date=datetime.datetime.now() - datetime.timedelta(hours=1),
                          finish_date=datetime.datetime.now(), param='PM2.5', utc_hour_dif=7, print_response=True):
@@ -378,3 +381,6 @@ class CityAirRequest:
                 return pd.to_datetime(date_string, dayfirst=True)
             except Exception:
                 raise Exception("Wrong date format")
+
+
+

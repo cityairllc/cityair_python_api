@@ -5,6 +5,7 @@ import matplotlib.dates  as mdates
 import plotly.graph_objs as go
 import pandas as pd
 import os
+import time
 
 try:
     init_notebook_mode(connected=True)
@@ -20,7 +21,7 @@ def graph_time(*dfs, descr=None, dropna=True, markers=False):
             series = df[col]
             if dropna:
                 series.dropna(inplace=True)
-            traces.append(go.Scatter(x=series.index.to_series().apply(lambda x: x.isoformat())  # .to_pydatetime()
+            traces.append(go.Scatter(x=series.index  # .to_pydatetime()
                                      , y=series, name=col, mode="markers" if markers else None))
     if descr:
         if not os.path.exists("./out"):
@@ -48,7 +49,7 @@ def graph_corr(res, ref, descr=None):
         y = tmp_df.iloc[:, 1]
 
         ax[i].scatter(x, y)
-        ax[i].plot(range(int(x.min()), int(x.max())), range(int(x.min()), int(x.max())), color = 'black')
+        ax[i].plot(range(int(x.min()), int(x.max())), range(int(x.min()), int(x.max())), color='black')
 
         max_ = int(ref.iloc[:, i].max())
         ax[i].plot(range(max_), range(max_), c='k')
@@ -70,30 +71,57 @@ def graph_corr(res, ref, descr=None):
 
 
 def graph_time_matplotlib(df, serial_number="", save_file=True):
-    df = df.resample('10T').mean()
     params_to_show = {
         'PM2.5': 'grey',
         'RH': 'royalblue',
         'T': 'tomato',
-        'CO2': 'C0'
+        'CO2': 'C0',
+        'O3': 'blue',
+        'SO2': 'red',
+        'NO2': 'red',
+        'CO': 'black',
+        'H2S': 'yellow'
     }
+    if len(df.index) != 0:
+        df = df.resample('10T').mean()
     params = (list(filter(lambda param: param in list(params_to_show.keys()), df.columns)))
     params.sort()
     graph_count = len(params)
-    fig, ax = plt.subplots(nrows=graph_count, ncols=1, figsize=(10, 5 * graph_count), dpi=100)
 
-    x = [mdates.date2num(d) for d in df.index]
-    for i, param in enumerate(params):
-        y = df[param]
-        ax[i].plot(x, y, color=params_to_show[param])
-        ax[i].annotate(s=serial_number, xy=(0.03, 0.92), xycoords='axes fraction', fontweight='bold',
-                       backgroundcolor="w")
-        ax[i].set_ylabel(y.name)
-        ax[i].xaxis.set_major_formatter(mdates.DateFormatter('%d %b'))
-        ax[i].grid()
+    if graph_count == 0 or len(df.index) == 0:
+        fig, ax = plt.subplots(nrows=1, ncols=1, figsize=(10, 5 * 1), dpi=100)
+        ax.plot([0], [0])
+        ax.annotate(s=f"{serial_number} has no data", xy=(0.03, 0.92), xycoords='axes fraction', fontweight='bold',
+                    backgroundcolor="w")
+        ax.grid()
+    elif graph_count == 1:
+        param = params[0]
+        fig, ax = plt.subplots(nrows=graph_count, ncols=1, figsize=(10, 5 * graph_count), dpi=100)
+        ax.plot([mdates.date2num(d) for d in df.index], df[param], color=params_to_show[param])
+        ax.annotate(s=serial_number, xy=(0.03, 0.92), xycoords='axes fraction', fontweight='bold',
+                    backgroundcolor="w")
+        ax.set_ylabel(param)
+        ax.xaxis.set_major_formatter(mdates.DateFormatter('%d %b'))
+        ax.grid()
+    else:
+        # df = df.resample('10T').mean()
+        x = [mdates.date2num(d) for d in df.index]
+        fig, ax = plt.subplots(nrows=graph_count, ncols=1, figsize=(10, 5 * graph_count), dpi=100)
+        for i, param in enumerate(params):
+            ax[i].plot(x, df[param], color=params_to_show[param])
+            ax[i].annotate(s=serial_number, xy=(0.03, 0.92), xycoords='axes fraction', fontweight='bold',
+                           backgroundcolor="w")
+            ax[i].set_ylabel(param)
+            ax[i].xaxis.set_major_formatter(mdates.DateFormatter('%d %b'))
+            ax[i].grid()
     if save_file:
         path = f'{serial_number}_graph.png'
         plt.savefig(path)
         return (path)
     else:
         plt.show()
+
+
+
+
+
