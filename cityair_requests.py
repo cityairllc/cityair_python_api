@@ -56,7 +56,7 @@ class CityAirRequest:
             response = requests.post(url, json=body, timeout=self.request_timeout)
             response.raise_for_status()
         except requests.Timeout:
-            raise Exception(f"Я выждал {self.request_timeout} секунд, но сервер не ответил. Странно, пните Виталю.")
+            raise Exception(f"Я выждал {self.request_timeout} секунд, но сервер не ответил. Странно.")
         except Exception as e:
             raise Exception(
                 f"Error while getting device list:\n"
@@ -242,7 +242,7 @@ class CityAirRequest:
             response.raise_for_status()
         except requests.Timeout:
             raise Exception(
-                f"Я выждал {self.request_timeout} секунд, но сервер не ответил. Очень странно, пните Виталю")
+                f"Я выждал {self.request_timeout} секунд, но сервер не ответил. Очень странно")
         except Exception as e:
             raise Exception(
                 f"Error while getting stations info:\n"
@@ -291,7 +291,7 @@ class CityAirRequest:
             response.raise_for_status()
         except requests.Timeout:
             raise Exception(
-                f"Я выждал {self.request_timeout} секунд, но сервер не ответил. Очень странно, пните Виталю")
+                f"Я выждал {self.request_timeout} секунд, но сервер не ответил. Очень странно")
         except Exception as e:
             raise Exception(
                 f"Error while getting {station_id} station data:\n"
