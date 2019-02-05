@@ -14,10 +14,14 @@ class CityAirRequest:
             self.is_dev = True
             self.request_url = f'https://cityair.io/backend-api/request-dev.php?map=/'
             self.device_data_url = f'{self.request_url}DevicesApi/GetPackets2'
+            body = {"Auth": {"User": self.user,
+                                 "Pwd": self.psw}}
         else:
             self.is_dev = False
             self.request_url = f'https://cityair.io/backend-api/request.php?map=/'
             self.device_data_url = f'{self.request_url}DevicesApi/GetPackets'
+            body = {"AuthData": {"User": self.user,
+                                 "Pwd": self.psw}}
         self.devices_url = f'{self.request_url}DevicesApi/GetDevices2'
 
         self.stations_url = f'{self.request_url}MonitoringStationsApi/GetMonitoringStations'
@@ -31,8 +35,8 @@ class CityAirRequest:
             'pressure': 'P'
         }
         # check authentication
-        body = {"AuthData": {"User": self.user,
-                             "Pwd": self.psw}}
+
+
         url = self.devices_url
         try:
             response = requests.post(url, json=body, timeout=self.request_timeout)
@@ -49,8 +53,12 @@ class CityAirRequest:
                 f"request: {str(body).replace(self.psw, '***').replace(self.user, '***')}")
 
     def get_devices(self, full_info=False, raw=False):
-        body = {"AuthData": {"User": self.user,
-                             "Pwd": self.psw}}
+        if self.is_dev:
+            body = {"Auth": {"User": self.user,
+                                 "Pwd": self.psw}}
+        else:
+            body = {"AuthData": {"User": self.user,
+                                 "Pwd": self.psw}}
         url = self.devices_url
         try:
             response = requests.post(url, json=body, timeout=self.request_timeout)
@@ -139,7 +147,7 @@ class CityAirRequest:
         finish_date = self.to_date(finish_date) - datetime.timedelta(hours=utc_hour_dif)
         url = self.device_data_url
         if self.is_dev:
-            body = {"AuthData": {"User": self.user,
+            body = {"Auth": {"User": self.user,
                                  "Pwd": self.psw},
                     "Filter": {
                         "BeginTime": start_date.isoformat(),
