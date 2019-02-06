@@ -276,22 +276,32 @@ class CityAirRequest:
                 f"url: {url}\n"
                 f"request: {str(body).replace(self.psw, '***').replace(self.user, '***')}")
 
-    def get_station_data(self, station_id, period='5min',
-                         start_date=datetime.datetime.now() - datetime.timedelta(hours=1),
+    def get_station_data(self, station_id,
+                         start_date, period='5min',
                          finish_date=datetime.datetime.now(), utc_hour_dif=7, print_response=True, print_json=False,
-                         params=None):
+                         params=None, last_week=True):
         time_periods = {'5min': 1, '20min': 2, '1hr': 3, '24hr': 4}
-        start_date = self.to_date(start_date) - datetime.timedelta(hours=utc_hour_dif)
-        finish_date = self.to_date(finish_date) - datetime.timedelta(hours=utc_hour_dif)
-        body = {"User": self.user,
-                "Pwd": self.psw,
-                "Filter": {
-                    "MonitoringObjectId": f"{station_id}",
-                    "FilterType": 1,
-                    "IntervalType": time_periods[period],
-                    # "DotId":21,
-                    "BeginTime": start_date.isoformat(),
-                    "EndTime": finish_date.isoformat()}}
+        if start_date:
+            finish_date = self.to_date(finish_date) - datetime.timedelta(hours=utc_hour_dif)
+            start_date = self.to_date(start_date) - datetime.timedelta(hours=utc_hour_dif)
+            body = {"User": self.user,
+                    "Pwd": self.psw,
+                    "Filter": {
+                        "MonitoringObjectId": f"{station_id}",
+                        "FilterType": 1,
+                        "IntervalType": time_periods[period],
+                        "BeginTime": start_date.isoformat(),
+                        "EndTime": finish_date.isoformat()}}
+        else:
+            body = {"User": self.user,
+                    "Pwd": self.psw,
+                    "Filter": {
+                        "MonitoringObjectId": f"{station_id}",
+                        "FilterType": 3,
+                        "IntervalType": 1,
+                        "SkipFromLast": 0,
+                        "TakeCount": 2016
+                       }}
         url = self.station_data_url
         start_time = time.time()
         try:
@@ -363,14 +373,14 @@ class CityAirRequest:
                 f"request: {str(body).replace(self.psw, '***').replace(self.user, '***')}\n"
                 f"response: {response.json()}")
 
-    def get_stations_data(self, station_ids, period='5min',
-                          start_date=datetime.datetime.now() - datetime.timedelta(hours=1),
+    def get_stations_data(self, station_ids,
+                          start_date, period='5min',
                           finish_date=datetime.datetime.now(), param='PM2.5', utc_hour_dif=7, print_response=True):
         df = pd.DataFrame()
         for station_id in station_ids:
             try:
                 new_series = \
-                    self.get_station_data(station_id, period, start_date, finish_date, utc_hour_dif, print_response)[
+                    self.get_station_data(station_id, start_date, period, finish_date, utc_hour_dif, print_response)[
                         param]
             except Exception:
                 new_series = pd.Series()
