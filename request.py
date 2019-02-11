@@ -341,7 +341,7 @@ class CityAirRequest:
             if len(tmp_df.index) == 0:
                 if print_response:
                     print(f"mo_id: {station_id}, packets_count: {tmp_df.shape[0]}. took {elapsed_time:.2f}s to collect")
-                return pd.DataFrame()
+                return pd.DataFrame(columns = params if params else ['PM2.5', 'PM10','T','RH','P'])
             df = pd.DataFrame()
             for data_str in tmp_df['DataJson']:
                 df = df.append(dict([(param['Id'], param['Sum'] / param['Cnt']) for param in json.loads(data_str)]),

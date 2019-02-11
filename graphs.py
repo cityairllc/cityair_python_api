@@ -36,6 +36,25 @@ def graph_time(*dfs, descr=None, dropna=True, markers=False):
         except ImportError as e:
             print(e.__str__())
 
+def box_plot(*dfs, descr=None):
+    boxPlot = []
+    for df in dfs:
+        for col in df.columns:
+            boxPlot.append(go.Box(y = df[col], name = col))
+    layout = go.Layout()
+    fig = go.Figure(data=boxPlot, layout=layout)
+    if descr:
+        if not os.path.exists("./out"):
+            os.makedirs("./out")
+        path = f"./out/time_{descr}.html"
+        plot(fig, filename=path, auto_open=False)
+        print(f"graph saved at {path}")
+    else:
+        try:
+            iplot(fig)
+        except ImportError as e:
+            print(e.__str__())
+
 def graph_corr(res, ref, descr=None):
     graph_count = res.shape[1]
     fig, ax = plt.subplots(nrows=1, ncols=res.shape[1], figsize=(5 * graph_count, 4))
