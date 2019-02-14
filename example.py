@@ -1,5 +1,5 @@
-from cityair_python_api.cityair_requests import CityAirRequest
-from cityair_python_api.cityair_graphs import *
+from request import CityAirRequest
+from graphs import *
 #test
 login = 'CityairDemo'
 psw = 'demoAccPsw'
