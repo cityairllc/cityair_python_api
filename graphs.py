@@ -4,6 +4,7 @@ from matplotlib import pyplot as plt
 import matplotlib.dates  as mdates
 import plotly.graph_objs as go
 import pandas as pd
+from IPython.display import Image
 import os
 import time
 import numpy as np
@@ -15,7 +16,7 @@ except Exception as e:
     pass
 
 
-def graph_time(*dfs, descr=None, dropna=True, markers=False):
+def graph_time(*dfs, descr=None, dropna=True, markers=False, jpg=False):
     traces = []
     for df in dfs:
         for col in df.columns:
@@ -24,17 +25,28 @@ def graph_time(*dfs, descr=None, dropna=True, markers=False):
                 series.dropna(inplace=True)
             traces.append(go.Scatter(x=series.index  # .to_pydatetime()
                                      , y=series, name=col, mode="markers" if markers else None))
+    layout = go.Layout(width=1200, height=600)
+    fig = go.Figure(data=traces, layout=layout)
+    if not os.path.exists("./out"):
+        os.makedirs("./out")
+
+    if jpg:
+        jpg_filename = f'{f"./out/time_{descr}.jpeg" if descr else "./out/tmp_graph.jpeg"}'
+        plotly.plotly.sign_in('EgorKorovin', 'dCuI77pcQp6bmSspU8P3')
+        plotly.plotly.image.save_as(fig, filename=jpg_filename)
     if descr:
-        if not os.path.exists("./out"):
-            os.makedirs("./out")
-        path = f"./out/time_{descr}.html"
-        plot(traces, filename=path, auto_open=False)
-        print(f"graph saved at {path}")
+        if not jpg:
+            path = f"./out/time_{descr}.html"
+            plot(traces, filename=path, auto_open=False)
+            print(f"graph saved at {path}")
     else:
-        try:
-            iplot(traces)
-        except ImportError as e:
-            print(e.__str__())
+        if jpg:
+            return Image(jpg_filename)
+        else:
+            try:
+                iplot(traces)
+            except ImportError as e:
+                print(e.__str__())
 
 def box_plot(*dfs, descr=None):
     boxPlot = []
@@ -43,17 +55,26 @@ def box_plot(*dfs, descr=None):
             boxPlot.append(go.Box(y = df[col], name = col))
     layout = go.Layout()
     fig = go.Figure(data=boxPlot, layout=layout)
+    if not os.path.exists("./out"):
+        os.makedirs("./out")
+
+    if jpg:
+        jpg_filename = f'{f"./out/time_{descr}.jpeg" if descr else "./out/tmp_graph.jpeg"}'
+        plotly.plotly.sign_in('EgorKorovin', 'dCuI77pcQp6bmSspU8P3')
+        plotly.plotly.image.save_as(fig, filename=jpg_filename)
     if descr:
-        if not os.path.exists("./out"):
-            os.makedirs("./out")
-        path = f"./out/time_{descr}.html"
-        plot(fig, filename=path, auto_open=False)
-        print(f"graph saved at {path}")
+        if not jpg:
+            path = f"./out/time_{descr}.html"
+            plot(traces, filename=path, auto_open=False)
+            print(f"graph saved at {path}")
     else:
-        try:
-            iplot(fig)
-        except ImportError as e:
-            print(e.__str__())
+        if jpg:
+            return Image(jpg_filename)
+        else:
+            try:
+                iplot(traces)
+            except ImportError as e:
+                print(e.__str__())
 
 def graph_corr(res, ref, descr=None):
     graph_count = res.shape[1]
