@@ -8,6 +8,14 @@ from IPython.display import Image
 import os
 import time
 import numpy as np
+from plotly import plotly
+from plotly.offline import iplot, init_notebook_mode
+import plotly.graph_objs as go
+import plotly.io as pio
+from IPython.display import SVG, display
+
+import os
+import numpy as np
 
 try:
     init_notebook_mode(connected=True)
@@ -16,65 +24,65 @@ except Exception as e:
     pass
 
 
-def graph_time(*dfs, descr=None, dropna=True, markers=False, jpg=False):
+def graph_time(*dfs, descr=None, dropna=True, markers=False, for_print=False):
     traces = []
     for df in dfs:
+        if for_print:
+            df = prepare_df(df)
         for col in df.columns:
             series = df[col]
             if dropna:
                 series.dropna(inplace=True)
             traces.append(go.Scatter(x=series.index  # .to_pydatetime()
                                      , y=series, name=col, mode="markers" if markers else None))
-    layout = go.Layout(width=1200, height=600)
-    fig = go.Figure(data=traces, layout=layout)
+    return save_plotly_traces(traces, descr, for_print)
+
+
+def prepare_df(df, max_point_count=20000):
+    point_count = df.shape[0] * df.shape[1]
+    if point_count > max_point_count:
+        df = df[::point_count // max_point_count]
+    return df
+
+
+def save_plotly_traces(traces, descr=None, for_print=False, width=1000, height=500):
+    if isinstance(traces, go.Figure):
+        fig = traces
+    else:
+        layout = go.Layout(width=width, height=height)
+        fig = go.Figure(data=traces, layout=layout)
     if not os.path.exists("./out"):
         os.makedirs("./out")
-
-    if jpg:
-        jpg_filename = f'{f"./out/time_{descr}.jpeg" if descr else "./out/tmp_graph.jpeg"}'
-        plotly.plotly.sign_in('EgorKorovin', 'dCuI77pcQp6bmSspU8P3')
-        plotly.plotly.image.save_as(fig, filename=jpg_filename)
+    if for_print:
+        image_filename = f'{f"./out/time_{descr}.svg" if descr else "./out/tmp_graph.svg"}'
+        try:
+            pio.write_image(fig, image_filename)
+        except Exception as e:
+            print(f"While saving image in plotly offline mode Exception has occured: {e.__str__()}")
+            plotly.plotly.sign_in('EgorKorovin', 'dCuI77pcQp6bmSspU8P3')
+            plotly.plotly.image.save_as(fig, filename=image_filename)
     if descr:
-        if not jpg:
+        if not for_print:
             path = f"./out/time_{descr}.html"
             plot(traces, filename=path, auto_open=False)
             print(f"graph saved at {path}")
     else:
-        if jpg:
-            return Image(jpg_filename)
+        if for_print:
+            display( SVG(image_filename))
         else:
             try:
                 iplot(traces)
             except ImportError as e:
                 print(e.__str__())
 
-def box_plot(*dfs, descr=None):
-    boxPlot = []
+
+def box_plot(*dfs, descr=None, for_print=False):
+    traces = []
     for df in dfs:
         for col in df.columns:
-            boxPlot.append(go.Box(y = df[col], name = col))
-    layout = go.Layout()
-    fig = go.Figure(data=boxPlot, layout=layout)
-    if not os.path.exists("./out"):
-        os.makedirs("./out")
+            traces.append(go.Box(y=df[col], name=col))
+    return save_plotly_traces(traces, descr, for_print)
 
-    if jpg:
-        jpg_filename = f'{f"./out/time_{descr}.jpeg" if descr else "./out/tmp_graph.jpeg"}'
-        plotly.plotly.sign_in('EgorKorovin', 'dCuI77pcQp6bmSspU8P3')
-        plotly.plotly.image.save_as(fig, filename=jpg_filename)
-    if descr:
-        if not jpg:
-            path = f"./out/time_{descr}.html"
-            plot(traces, filename=path, auto_open=False)
-            print(f"graph saved at {path}")
-    else:
-        if jpg:
-            return Image(jpg_filename)
-        else:
-            try:
-                iplot(traces)
-            except ImportError as e:
-                print(e.__str__())
 
 def graph_corr(res, ref, descr=None):
     graph_count = res.shape[1]
@@ -113,7 +121,7 @@ def graph_corr(res, ref, descr=None):
             ax[i].plot(range(int(x.min()), int(x.max())), range(int(x.min()), int(x.max())), color='black')
 
             max_ = y.max()
-            ax[i].plot(np.linspace(0,max_, 5), np.linspace(0, max_, 5), c='k')
+            ax[i].plot(np.linspace(0, max_, 5), np.linspace(0, max_, 5), c='k')
             print(max_)
 
             mse = mean_squared_error(x, y)
@@ -130,6 +138,7 @@ def graph_corr(res, ref, descr=None):
         plt.savefig(f'./out/corr_{descr}.png')
     else:
         plt.show()
+
 
 def graph_time_matplotlib(df, serial_number="", save_file=True):
     params_to_show = {
@@ -181,6 +190,9 @@ def graph_time_matplotlib(df, serial_number="", save_file=True):
         return (path)
     else:
         plt.show()
+
+
+
 
 
 

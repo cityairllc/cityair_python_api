@@ -277,9 +277,9 @@ class CityAirRequest:
                 f"request: {str(body).replace(self.psw, '***').replace(self.user, '***')}")
 
     def get_station_data(self, station_id,
-                         start_date, period='5min',
-                         finish_date=datetime.datetime.now(), utc_hour_dif=7, print_response=True, print_json=False,
-                         params=None, last_week=True):
+                         start_date=None,
+                         finish_date=datetime.datetime.now(), period='5min', utc_hour_dif=7, print_response=True, print_json=False,
+                         params=None):
         time_periods = {'5min': 1, '20min': 2, '1hr': 3, '24hr': 4}
         if start_date:
             finish_date = self.to_date(finish_date) - datetime.timedelta(hours=utc_hour_dif)
@@ -374,13 +374,13 @@ class CityAirRequest:
                 f"response: {response.json()}")
 
     def get_stations_data(self, station_ids,
-                          start_date, period='5min',
-                          finish_date=datetime.datetime.now(), param='PM2.5', utc_hour_dif=7, print_response=True):
+                          start_date=None,
+                          finish_date=datetime.datetime.now(), period='5min', param='PM2.5', utc_hour_dif=7, print_response=True):
         df = pd.DataFrame()
         for station_id in station_ids:
             try:
                 new_series = \
-                    self.get_station_data(station_id, start_date, period, finish_date, utc_hour_dif, print_response)[
+                    self.get_station_data(station_id, start_date, finish_date, period, utc_hour_dif, print_response)[
                         param]
             except Exception:
                 new_series = pd.Series()
