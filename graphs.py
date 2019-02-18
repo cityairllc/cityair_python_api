@@ -4,7 +4,6 @@ from matplotlib import pyplot as plt
 import matplotlib.dates  as mdates
 import plotly.graph_objs as go
 import pandas as pd
-from IPython.display import Image
 import os
 import time
 import numpy as np
@@ -12,7 +11,10 @@ from plotly import plotly
 from plotly.offline import iplot, init_notebook_mode
 import plotly.graph_objs as go
 import plotly.io as pio
-from IPython.display import SVG, display, Image
+try:
+    from IPython.display import SVG, display, Image
+except Exception:
+    pass
 
 import os
 import numpy as np
