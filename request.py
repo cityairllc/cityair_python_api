@@ -15,7 +15,7 @@ class CityAirRequest:
             self.request_url = f'https://cityair.io/backend-api/request-dev.php?map=/'
             self.device_data_url = f'{self.request_url}DevicesApi/GetPackets2'
             body = {"Auth": {"User": self.user,
-                                 "Pwd": self.psw}}
+                             "Pwd": self.psw}}
         else:
             self.is_dev = False
             self.request_url = f'https://cityair.io/backend-api/request.php?map=/'
@@ -36,7 +36,6 @@ class CityAirRequest:
         }
         # check authentication
 
-
         url = self.devices_url
         try:
             response = requests.post(url, json=body, timeout=self.request_timeout)
@@ -55,7 +54,7 @@ class CityAirRequest:
     def get_devices(self, full_info=False, raw=False):
         if self.is_dev:
             body = {"Auth": {"User": self.user,
-                                 "Pwd": self.psw}}
+                             "Pwd": self.psw}}
         else:
             body = {"AuthData": {"User": self.user,
                                  "Pwd": self.psw}}
@@ -90,7 +89,7 @@ class CityAirRequest:
                 df['Версия прошивки'] = df_raw['SoftwareVersion'].apply(
                     lambda firmware: None if firmware is None else firmware)
                 df['Дата запуска'] = df_raw['DeviceWorkBegin'].apply(lambda
-                    date_string: None if date_string is None else f"{pd.to_datetime(date_string).strftime('%d.%m.%Y')}")
+                                                                         date_string: None if date_string is None else f"{pd.to_datetime(date_string).strftime('%d.%m.%Y')}")
                 df.index = df_raw['SerialNumber']
                 df.index.name = 'S/N'
                 return df
@@ -140,7 +139,6 @@ class CityAirRequest:
                 f"request: {str(body).replace(self.psw, '***').replace(self.user, '***')}\n"
                 f"response {response.json()}")
 
-
     def get_device_data(self, serial_number, start_date=datetime.datetime.now() - datetime.timedelta(hours=1),
                         finish_date=datetime.datetime.now(), utc_hour_dif=7, print_response=True, print_json=False):
         start_date = self.to_date(start_date) - datetime.timedelta(hours=utc_hour_dif)
@@ -148,7 +146,7 @@ class CityAirRequest:
         url = self.device_data_url
         if self.is_dev:
             body = {"Auth": {"User": self.user,
-                                 "Pwd": self.psw},
+                             "Pwd": self.psw},
                     "Filter": {
                         "BeginTime": start_date.isoformat(),
                         "EndTime": finish_date.isoformat(),
@@ -278,7 +276,8 @@ class CityAirRequest:
 
     def get_station_data(self, station_id,
                          start_date=None,
-                         finish_date=datetime.datetime.now(), period='5min', utc_hour_dif=7, print_response=True, print_json=False,
+                         finish_date=datetime.datetime.now(), period='5min', utc_hour_dif=7, print_response=True,
+                         print_json=False,
                          params=None):
         time_periods = {'5min': 1, '20min': 2, '1hr': 3, '24hr': 4}
         if start_date:
@@ -301,7 +300,7 @@ class CityAirRequest:
                         "IntervalType": 1,
                         "SkipFromLast": 0,
                         "TakeCount": 2016
-                       }}
+                    }}
         url = self.station_data_url
         start_time = time.time()
         try:
@@ -341,7 +340,7 @@ class CityAirRequest:
             if len(tmp_df.index) == 0:
                 if print_response:
                     print(f"mo_id: {station_id}, packets_count: {tmp_df.shape[0]}. took {elapsed_time:.2f}s to collect")
-                return pd.DataFrame(columns = params if params else ['PM2.5', 'PM10','T','RH','P'])
+                return pd.DataFrame(columns=params if params else ['PM2.5', 'PM10', 'T', 'RH', 'P'])
             df = pd.DataFrame()
             for data_str in tmp_df['DataJson']:
                 df = df.append(dict([(param['Id'], param['Sum'] / param['Cnt']) for param in json.loads(data_str)]),
@@ -375,7 +374,8 @@ class CityAirRequest:
 
     def get_stations_data(self, station_ids,
                           start_date=None,
-                          finish_date=datetime.datetime.now(), period='5min', param='PM2.5', utc_hour_dif=7, print_response=True):
+                          finish_date=datetime.datetime.now(), period='5min', param='PM2.5', utc_hour_dif=7,
+                          print_response=True):
         df = pd.DataFrame()
         for station_id in station_ids:
             try:
@@ -399,6 +399,3 @@ class CityAirRequest:
                 return pd.to_datetime(date_string, dayfirst=True)
             except Exception:
                 raise Exception("Wrong date format")
-
-
-
