@@ -12,7 +12,7 @@ from plotly import plotly
 from plotly.offline import iplot, init_notebook_mode
 import plotly.graph_objs as go
 import plotly.io as pio
-from IPython.display import SVG, display
+from IPython.display import SVG, display, Image
 
 import os
 import numpy as np
@@ -54,7 +54,7 @@ def save_plotly_traces(traces, descr=None, for_print=False, width=1000, height=5
     if not os.path.exists("./out"):
         os.makedirs("./out")
     if for_print:
-        image_filename = f'{f"./out/time_{descr}.svg" if descr else "./out/tmp_graph.svg"}'
+        image_filename = f'{f"./out/time_{descr}.jpg" if descr else "./out/tmp_graph.jpg"}'
         try:
             pio.write_image(fig, image_filename)
         except Exception as e:
@@ -68,7 +68,7 @@ def save_plotly_traces(traces, descr=None, for_print=False, width=1000, height=5
             print(f"graph saved at {path}")
     else:
         if for_print:
-            display( SVG(image_filename))
+            display( Image(image_filename))
         else:
             try:
                 iplot(traces)
@@ -140,7 +140,7 @@ def graph_corr(res, ref, descr=None):
         plt.show()
 
 
-def graph_time_matplotlib(df, serial_number="", save_file=True):
+def graph_time_matplotlib(df, serial_number="", save_file=True, serial_numer_for_path=None):
     params_to_show = {
         'PM2.5': 'grey',
         'RH': 'royalblue',
@@ -161,14 +161,14 @@ def graph_time_matplotlib(df, serial_number="", save_file=True):
     if graph_count == 0 or len(df.index) == 0:
         fig, ax = plt.subplots(nrows=1, ncols=1, figsize=(10, 5 * 1), dpi=100)
         ax.plot([0], [0])
-        ax.annotate(s=f"{serial_number} has no data", xy=(0.03, 0.92), xycoords='axes fraction', fontweight='bold',
+        ax.annotate(f"{serial_number} has no data", xy=(0.03, 0.92), xycoords='axes fraction', fontweight='bold',
                     backgroundcolor="w")
         ax.grid()
     elif graph_count == 1:
         param = params[0]
         fig, ax = plt.subplots(nrows=graph_count, ncols=1, figsize=(10, 5 * graph_count), dpi=100)
         ax.plot([mdates.date2num(d) for d in df.index], df[param], color=params_to_show[param])
-        ax.annotate(s=serial_number, xy=(0.03, 0.92), xycoords='axes fraction', fontweight='bold',
+        ax.annotate(serial_number, xy=(0.03, 0.92), xycoords='axes fraction', fontweight='bold',
                     backgroundcolor="w")
         ax.set_ylabel(param)
         ax.xaxis.set_major_formatter(mdates.DateFormatter('%d %b'))
@@ -179,13 +179,13 @@ def graph_time_matplotlib(df, serial_number="", save_file=True):
         fig, ax = plt.subplots(nrows=graph_count, ncols=1, figsize=(10, 5 * graph_count), dpi=100)
         for i, param in enumerate(params):
             ax[i].plot(x, df[param], color=params_to_show[param])
-            ax[i].annotate(s=serial_number, xy=(0.03, 0.92), xycoords='axes fraction', fontweight='bold',
+            ax[i].annotate(serial_number, xy=(0.03, 0.92), xycoords='axes fraction', fontweight='bold',
                            backgroundcolor="w")
             ax[i].set_ylabel(param)
             ax[i].xaxis.set_major_formatter(mdates.DateFormatter('%d %b'))
             ax[i].grid()
     if save_file:
-        path = f'{serial_number}_graph.png'
+        path = f'{serial_numer_for_path if serial_numer_for_path else serial_number}_graph.png'
         plt.savefig(path)
         return (path)
     else:
