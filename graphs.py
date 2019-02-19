@@ -26,7 +26,7 @@ except Exception as e:
     pass
 
 
-def graph_time(*dfs, descr=None, dropna=True, markers=False, for_print=False):
+def graph_time(*dfs, descr=None, markers=False, for_print=False, dropna=True):
     traces = []
     for df in dfs:
         if for_print:
@@ -58,7 +58,7 @@ def save_plotly_traces(traces, descr=None, for_print=False, width=1000, height=5
     if for_print:
         image_filename = f'{f"./out/time_{descr}.jpg" if descr else "./out/tmp_graph.jpg"}'
         try:
-            pio.write_image(fig, image_filename)
+            pio.write_image(fig, image_filename, scale = 5)
         except Exception as e:
             print(f"While saving image in plotly offline mode Exception has occured: {e.__str__()}")
             plotly.plotly.sign_in('EgorKorovin', 'dCuI77pcQp6bmSspU8P3')
