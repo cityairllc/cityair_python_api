@@ -315,7 +315,7 @@ class CityAirRequest:
                 f"{e.__str__()}\n"
                 f"url: {url}\n"
                 f"request: {str(body).replace(self.psw, '***').replace(self.user, '***')}")
-        elapsed_time = time.time() - start_time
+        request_time = time.time() - start_time
         if print_json:
             print(f"url : {url}\nbody: {body}\nresponse {response.json()}")
         try:
@@ -356,11 +356,11 @@ class CityAirRequest:
             # переименоываю, чтоб красивее было
             df.columns = [self.right_cols[col.lower()] if col.lower() in self.right_cols else col for col in df.columns]
             df.sort_index(axis=0, level=None, ascending=True, inplace=True)
-            processing_time = time.time() - start_time - elapsed_time
+            processing_time = time.time() - start_time - request_time
             if print_response:
                 print(
                     f"mo_id: {station_id}, packets_count: {df.shape[0]}. "
-                    f"took {elapsed_time:.2f}s to collect,  {processing_time:.2f}s to process")
+                    f"took {request_time:.2f}s to collect,  {processing_time:.2f}s to process")
             if params:
                 return df[params]
             return df
