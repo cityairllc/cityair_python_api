@@ -13,16 +13,15 @@ class CityAirRequest:
         if dev:
             self.is_dev = True
             self.request_url = f'https://cityair.io/backend-api/request-dev.php?map=/'
-            self.device_data_url = f'{self.request_url}DevicesApi/GetPackets2'
-            body = {"Auth": {"User": self.user,
-                             "Pwd": self.psw}}
+            self.device_data_url = f'{self.request_url}DevicesApi/GetPackets'
         else:
             self.is_dev = False
             self.request_url = f'https://cityair.io/backend-api/request.php?map=/'
             self.device_data_url = f'{self.request_url}DevicesApi/GetPackets'
-            body = {"AuthData": {"User": self.user,
-                                 "Pwd": self.psw}}
-        self.devices_url = f'{self.request_url}DevicesApi/GetDevices2'
+        body = {"Auth": {"User": self.user,
+                         "Pwd": self.psw},
+                "Filter": {}}
+        self.devices_url = f'{self.request_url}DevicesApi/GetDevices'
 
         self.stations_url = f'{self.request_url}MonitoringStationsApi/GetMonitoringStations'
         self.station_data_url = f'{self.request_url}MonitoringStationsApi/GetMonitoringStationPackets'
@@ -43,7 +42,10 @@ class CityAirRequest:
             if response.json()['IsError']:
                 raise Exception(f"{response.json()['ErrorMessage']}:\n{response.json()['ErrorMessageDetals']}")
             else:
-                print(f"Welcome, {user}. You have {len(response.json()['Result']['Devices'])} devices available!")
+                self.tmp = json_normalize(response.json()['Result']['Devices'])
+                self.device_ids = pd.Series(data=tmp["DeviceId"], name="device_ids")
+                self.device_ids.index = tmp["SerialNumber"]
+                # print(f"Welcome, {user}. You have {len(self.device_ids)} devices available!")
         except Exception as e:
             raise Exception(
                 f"Error while getting device list:\n"
@@ -52,12 +54,11 @@ class CityAirRequest:
                 f"request: {str(body).replace(self.psw, '***').replace(self.user, '***')}")
 
     def get_devices(self, full_info=False, raw=False):
-        if self.is_dev:
-            body = {"Auth": {"User": self.user,
-                             "Pwd": self.psw}}
-        else:
-            body = {"AuthData": {"User": self.user,
-                                 "Pwd": self.psw}}
+
+        body = {"Auth": {"User": self.user,
+                         "Pwd": self.psw},
+                "Filter": {}}
+
         url = self.devices_url
         try:
             response = requests.post(url, json=body, timeout=self.request_timeout)
@@ -80,7 +81,7 @@ class CityAirRequest:
                 df['Имя'] = df_raw['Name']
                 df['Онлайн'] = df_raw['IsOffline'].apply(
                     lambda online: "неизвестно" if online is None else '<b>Нет</b>' if online else 'Да')
-                df['Время последнего пакета'] = df_raw['DeviceLastPacketTime'].apply(
+                df['Время последнего пакета'] = df_raw['DeviceLastPacket'].apply(
                     lambda date_string: None if date_string is None else pd.to_datetime(date_string))
                 df['Питание 220В'] = df_raw['FlagPs220'].apply(
                     lambda ps220: None if ps220 is None else 'Есть' if ps220 else '<b>Нет</b>')
@@ -104,13 +105,16 @@ class CityAirRequest:
                 f"response {response.json()}")
 
     def get_last_packet(self, serial_number):
-        body = {"AuthData":
+        body = {"Auth":
                     {"User": self.user,
                      "Pwd": self.psw},
                 "Filter": {
-                    'OnlyLastPacket': True,
-                    "SerialNumber": serial_number}}
-        url = f'https://cityair.io/backend-api/request.php?map=/DevicesApi/GetPackets2'
+                    'FilterType': 1,
+                    "DeviceId": f'{self.device_ids[serial_number]}',
+                    "MaxPacketsCount": 1,
+                    "Skip": 0
+                }}
+        url = f'https://cityair.io/backend-api/request.php?map=/DevicesApi/GetPackets'
         try:
             response = requests.post(url, json=body, timeout=self.request_timeout)
             response.raise_for_status()
@@ -144,22 +148,16 @@ class CityAirRequest:
         start_date = self.to_date(start_date) - datetime.timedelta(hours=utc_hour_dif)
         finish_date = self.to_date(finish_date) - datetime.timedelta(hours=utc_hour_dif)
         url = self.device_data_url
-        if self.is_dev:
-            body = {"Auth": {"User": self.user,
-                             "Pwd": self.psw},
-                    "Filter": {
-                        "BeginTime": start_date.isoformat(),
-                        "EndTime": finish_date.isoformat(),
-                        "SerialNumber": serial_number,
-                        "MaxPacketsCount": 10 ** 5}}
-        else:
-            body = {"AuthData": {"User": self.user,
-                                 "Pwd": self.psw},
-                    "Filter": {
-                        "BeginTime": start_date.isoformat(),
-                        "EndTime": finish_date.isoformat(),
-                        "StationSerialNumber": serial_number,
-                        "MaxPacketsCount": 10 ** 5}}
+
+        body = {"Auth": {"User": self.user,
+                         "Pwd": self.psw},
+                "Filter": {
+                    "FilterType": 2,
+                    "BeginTime": start_date.isoformat(),
+                    "EndTime": finish_date.isoformat(),
+                    "DeviceId": f'{self.device_ids[serial_number]}',
+                    "MaxPacketsCount": 10 ** 5,
+                    "Skip": 0}}
         start_time = time.time()
         try:
             response = requests.post(url, json=body, timeout=self.request_timeout)
@@ -399,3 +397,4 @@ class CityAirRequest:
                 return pd.to_datetime(date_string, dayfirst=True)
             except Exception:
                 raise Exception("Wrong date format")
+
