@@ -397,4 +397,3 @@ class CityAirRequest:
                 return pd.to_datetime(date_string, dayfirst=True)
             except Exception:
                 raise Exception("Wrong date format")
-
