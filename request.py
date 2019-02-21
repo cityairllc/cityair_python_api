@@ -42,7 +42,7 @@ class CityAirRequest:
             if response.json()['IsError']:
                 raise Exception(f"{response.json()['ErrorMessage']}:\n{response.json()['ErrorMessageDetals']}")
             else:
-                self.tmp = json_normalize(response.json()['Result']['Devices'])
+                tmp = json_normalize(response.json()['Result']['Devices'])
                 self.device_ids = pd.Series(data=tmp["DeviceId"], name="device_ids")
                 self.device_ids.index = tmp["SerialNumber"]
                 # print(f"Welcome, {user}. You have {len(self.device_ids)} devices available!")
