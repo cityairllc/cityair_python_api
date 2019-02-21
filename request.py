@@ -388,6 +388,7 @@ class CityAirRequest:
         df.columns = [mo_names[mo_id] for mo_id in df.columns]
         return df
 
+
     @staticmethod
     def to_date(date_string):
         if isinstance(date_string, datetime.datetime):
