@@ -1,8 +1,8 @@
 from request import CityAirRequest
 from graphs import *
 #test
-login = 'CityairDemo'
-psw = 'demoAccPsw'
+login = 'CityAir_demo'
+psw = 'cityAirDemoPassword231'
 
 r = CityAirRequest(login, psw)
 

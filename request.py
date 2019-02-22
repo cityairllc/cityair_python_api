@@ -312,7 +312,8 @@ class CityAirRequest:
                 f"Error while getting {station_id} station data:\n"
                 f"{e.__str__()}\n"
                 f"url: {url}\n"
-                f"request: {str(body).replace(self.psw, '***').replace(self.user, '***')}")
+                f"request: {str(body).replace(self.psw, '***').replace(self.user, '***')}"
+                f"response: {response}")
         request_time = time.time() - start_time
         if print_json:
             print(f"url : {url}\nbody: {body}\nresponse {response.json()}")
@@ -337,7 +338,7 @@ class CityAirRequest:
         try:
             if len(tmp_df.index) == 0:
                 if print_response:
-                    print(f"mo_id: {station_id}, packets_count: {tmp_df.shape[0]}. took {elapsed_time:.2f}s to collect")
+                    print(f"mo_id: {station_id}, packets_count: {tmp_df.shape[0]}. took {request_time:.2f}s to collect")
                 return pd.DataFrame(columns=params if params else ['PM2.5', 'PM10', 'T', 'RH', 'P'])
             df = pd.DataFrame()
             for data_str in tmp_df['DataJson']:
