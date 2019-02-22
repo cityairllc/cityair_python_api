@@ -31,12 +31,20 @@ def graph_time(*dfs, descr=None, markers=False, for_print=False, dropna=True):
     for df in dfs:
         if for_print:
             df = prepare_df(df)
-        for col in df.columns:
-            series = df[col]
+        if isinstance(df, pd.Series):
+            series = df
             if dropna:
                 series.dropna(inplace=True)
             traces.append(go.Scatter(x=series.index  # .to_pydatetime()
-                                     , y=series, name=col, mode="markers" if markers else None))
+                                     , y=series, name=series.name, mode="markers" if markers else None))
+        else:
+
+            for col in df.columns:
+                series = df[col]
+                if dropna:
+                    series.dropna(inplace=True)
+                traces.append(go.Scatter(x=series.index  # .to_pydatetime()
+                                         , y=series, name=series.name, mode="markers" if markers else None))
     return save_plotly_traces(traces, descr, for_print)
 
 

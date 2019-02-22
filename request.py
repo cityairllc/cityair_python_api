@@ -156,7 +156,7 @@ class CityAirRequest:
                     "BeginTime": start_date.isoformat(),
                     "EndTime": finish_date.isoformat(),
                     "DeviceId": f'{self.device_ids[serial_number]}',
-                    "MaxPacketsCount": 10 ** 5,
+                    "MaxPacketsCount": 10 ** 9,
                     "Skip": 0}}
         start_time = time.time()
         try:
