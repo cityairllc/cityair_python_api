@@ -205,7 +205,7 @@ class CityAirRequest:
             df.columns = [self.right_cols[col.lower()] if col.lower() in self.right_cols else col for col in df.columns]
             if print_response:
                 print(f"{serial_number}, {elapsed_time:.2f} s for {df.shape[0]} packets")
-            df.drop(['SendDate'], axis=1, inplace=True)
+          #  df.drop(['SendDate'], axis=1, inplace=True)
         except Exception as e:
             raise Exception(
                 f"Error while getting {serial_number} device data: \n"
