@@ -22,7 +22,7 @@ class CityAirRequest:
                          "Pwd": self.psw},
                 "Filter": {}}
         self.devices_url = f'{self.request_url}DevicesApi/GetDevices'
-
+        self.devices_url_raw = f'{self.request_url}DevicesApiRaw/GetDevices'
         self.stations_url = f'{self.request_url}MonitoringStationsApi/GetMonitoringStations'
         self.station_data_url = f'{self.request_url}MonitoringStationsApi/GetMonitoringStationPackets'
         self.request_timeout = request_timeout
@@ -58,8 +58,10 @@ class CityAirRequest:
         body = {"Auth": {"User": self.user,
                          "Pwd": self.psw},
                 "Filter": {}}
-
-        url = self.devices_url
+        if raw:
+            url = self.devices_url_raw
+        else:
+            url = self.devices_url
         try:
             response = requests.post(url, json=body, timeout=self.request_timeout)
             response.raise_for_status()
@@ -156,7 +158,7 @@ class CityAirRequest:
                     "BeginTime": start_date.isoformat(),
                     "EndTime": finish_date.isoformat(),
                     "DeviceId": f'{self.device_ids[serial_number]}',
-                    "MaxPacketsCount": 10 ** 9,
+                    "MaxPacketsCount": 10 ** 5,
                     "Skip": 0}}
         start_time = time.time()
         try:
@@ -205,7 +207,7 @@ class CityAirRequest:
             df.columns = [self.right_cols[col.lower()] if col.lower() in self.right_cols else col for col in df.columns]
             if print_response:
                 print(f"{serial_number}, {elapsed_time:.2f} s for {df.shape[0]} packets")
-          #  df.drop(['SendDate'], axis=1, inplace=True)
+            df.drop(['SendDate'], axis=1, inplace=True)
         except Exception as e:
             raise Exception(
                 f"Error while getting {serial_number} device data: \n"
@@ -312,8 +314,7 @@ class CityAirRequest:
                 f"Error while getting {station_id} station data:\n"
                 f"{e.__str__()}\n"
                 f"url: {url}\n"
-                f"request: {str(body).replace(self.psw, '***').replace(self.user, '***')}"
-                f"response: {response}")
+                f"request: {str(body).replace(self.psw, '***').replace(self.user, '***')}")
         request_time = time.time() - start_time
         if print_json:
             print(f"url : {url}\nbody: {body}\nresponse {response.json()}")
@@ -338,7 +339,7 @@ class CityAirRequest:
         try:
             if len(tmp_df.index) == 0:
                 if print_response:
-                    print(f"mo_id: {station_id}, packets_count: {tmp_df.shape[0]}. took {request_time:.2f}s to collect")
+                    print(f"mo_id: {station_id}, packets_count: {tmp_df.shape[0]}. took {elapsed_time:.2f}s to collect")
                 return pd.DataFrame(columns=params if params else ['PM2.5', 'PM10', 'T', 'RH', 'P'])
             df = pd.DataFrame()
             for data_str in tmp_df['DataJson']:
