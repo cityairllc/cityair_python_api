@@ -240,8 +240,9 @@ class CityAirRequest:
         return df
 
     def get_stations(self, full_info=False, print_json=False):
-        body = {"User": self.user,
-                "Pwd": self.psw}
+        body = {"Auth":
+                    {"User": self.user,
+                     "Pwd": self.psw}}
         url = self.stations_url
         try:
             response = requests.post(url, json=body, timeout=self.request_timeout)
@@ -283,8 +284,9 @@ class CityAirRequest:
         if start_date:
             finish_date = self.to_date(finish_date) - datetime.timedelta(hours=utc_hour_dif)
             start_date = self.to_date(start_date) - datetime.timedelta(hours=utc_hour_dif)
-            body = {"User": self.user,
-                    "Pwd": self.psw,
+            body = {"Auth":
+                    {"User": self.user,
+                     "Pwd": self.psw},
                     "Filter": {
                         "MonitoringObjectId": f"{station_id}",
                         "FilterType": 1,
@@ -292,8 +294,9 @@ class CityAirRequest:
                         "BeginTime": start_date.isoformat(),
                         "EndTime": finish_date.isoformat()}}
         else:
-            body = {"User": self.user,
-                    "Pwd": self.psw,
+            body = {"Auth":
+                    {"User": self.user,
+                     "Pwd": self.psw},
                     "Filter": {
                         "MonitoringObjectId": f"{station_id}",
                         "FilterType": 3,
