@@ -131,7 +131,7 @@ class CityAirRequest:
                 f"url : {url}\n"
                 f"request: {str(body).replace(self.psw, '***').replace(self.user, '***')}")
         try:
-            params_to_throw = ['IsSendDateReal', 'RecvDate', 'PacketId', 'StationId', 'IsSendDateReal', 'Tag',
+            params_to_throw = ['IsSendDateReal', 'PacketId', 'StationId', 'IsSendDateReal', 'Tag',
                                'GeoInfo']
             last_packet = response.json()['Result']['Packets'][0]
             res = dict([(param, last_packet[param]) if (last_packet[param] and param not in params_to_throw) else (
@@ -342,7 +342,7 @@ class CityAirRequest:
         try:
             if len(tmp_df.index) == 0:
                 if print_response:
-                    print(f"mo_id: {station_id}, packets_count: {tmp_df.shape[0]}. took {elapsed_time:.2f}s to collect")
+                    print(f"mo_id: {station_id}, packets_count: {tmp_df.shape[0]}. took {request_time:.2f}s to collect")
                 return pd.DataFrame(columns=params if params else ['PM2.5', 'PM10', 'T', 'RH', 'P'])
             df = pd.DataFrame()
             for data_str in tmp_df['DataJson']:
