@@ -131,7 +131,7 @@ class CityAirRequest:
                 f"url : {url}\n"
                 f"request: {str(body).replace(self.psw, '***').replace(self.user, '***')}")
         try:
-            params_to_throw = ['IsSendDateReal', 'PacketId', 'StationId', 'IsSendDateReal', 'Tag',
+            params_to_throw = ['IsSendDateReal', 'PacketId', 'DeviceId','StationId', 'IsSendDateReal', 'Tag',
                                'GeoInfo']
             print(response.json()['Result']['Packets'][0])
             last_packet = response.json()['Result']['Packets'][0]
