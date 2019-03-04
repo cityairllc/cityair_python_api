@@ -133,6 +133,7 @@ class CityAirRequest:
         try:
             params_to_throw = ['IsSendDateReal', 'PacketId', 'StationId', 'IsSendDateReal', 'Tag',
                                'GeoInfo']
+            print(response.json()['Result']['Packets'][0])
             last_packet = response.json()['Result']['Packets'][0]
             res = dict([(param, last_packet[param]) if (last_packet[param] and param not in params_to_throw) else (
                 'SendDate', last_packet['SendDate']) for param in last_packet])
