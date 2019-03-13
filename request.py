@@ -14,10 +14,12 @@ class CityAirRequest:
             self.is_dev = True
             self.request_url = f'https://cityair.io/backend-api/request-dev.php?map=/'
             self.device_data_url = f'{self.request_url}DevicesApi/GetPackets'
+            self.device_data_url_raw = f'{self.request_url}DevicesApi/GetPackets'
         else:
             self.is_dev = False
             self.request_url = f'https://cityair.io/backend-api/request.php?map=/'
             self.device_data_url = f'{self.request_url}DevicesApi/GetPackets'
+            self.device_data_url_raw = f'{self.request_url}DevicesApiRaw/GetPackets'
         body = {"Auth": {"User": self.user,
                          "Pwd": self.psw},
                 "Filter": {}}
@@ -147,10 +149,13 @@ class CityAirRequest:
                 f"response {response.json()}")
 
     def get_device_data(self, serial_number, start_date=datetime.datetime.now() - datetime.timedelta(hours=1),
-                        finish_date=datetime.datetime.now(), utc_hour_dif=7, print_response=True, print_json=False):
+                        finish_date=datetime.datetime.now(), utc_hour_dif=7, print_response=True, print_json=False, raw = False):
         start_date = self.to_date(start_date) - datetime.timedelta(hours=utc_hour_dif)
         finish_date = self.to_date(finish_date) - datetime.timedelta(hours=utc_hour_dif)
-        url = self.device_data_url
+        if raw:
+            url = self.device_data_url_raw
+        else:
+            url = self.device_data_url
 
         body = {"Auth": {"User": self.user,
                          "Pwd": self.psw},
