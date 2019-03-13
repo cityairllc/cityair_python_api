@@ -59,7 +59,7 @@ def save_plotly_traces(traces, descr=None, for_print=False, width=1000, height=5
     if isinstance(traces, go.Figure):
         fig = traces
     else:
-        layout = go.Layout(width=width, height=height)
+        layout = go.Layout(width=width, height=height, title=descr)
         fig = go.Figure(data=traces, layout=layout)
     if not os.path.exists("./out"):
         os.makedirs("./out")
@@ -74,14 +74,14 @@ def save_plotly_traces(traces, descr=None, for_print=False, width=1000, height=5
     if descr:
         if not for_print:
             path = f"./out/time_{descr}.html"
-            plot(traces, filename=path, auto_open=False)
+            plot(fig, filename=path, auto_open=False)
             print(f"graph saved at {path}")
     else:
         if for_print:
             display( Image(image_filename))
         else:
             try:
-                iplot(traces)
+                iplot(fig)
             except ImportError as e:
                 print(e.__str__())
 
