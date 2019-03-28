@@ -1,29 +1,109 @@
-from plotly.offline import init_notebook_mode, plot, iplot
-from sklearn.metrics import mean_absolute_error, mean_squared_error, r2_score
-from matplotlib import pyplot as plt
-import matplotlib.dates  as mdates
-import plotly.graph_objs as go
 import pandas as pd
 import os
-import time
+from math import ceil
 import numpy as np
+from sklearn.metrics import mean_absolute_error, mean_squared_error, r2_score
+
+from plotly.offline import init_notebook_mode, plot, iplot
 from plotly import plotly
+from plotly import tools
 from plotly.offline import iplot, init_notebook_mode
 import plotly.graph_objs as go
 import plotly.io as pio
+
+from utils import *
+
 try:
     from IPython.display import SVG, display, Image
 except Exception:
     pass
-
-import os
-import numpy as np
 
 try:
     init_notebook_mode(connected=True)
 except Exception as e:
     print(e.__str__())
     pass
+
+
+def export_figs(*figs, descr=None, for_print=False, cols=3, width=1000):
+    fig_count = len(figs)
+    if fig_count > 1:
+        cols = min(fig_count, cols)
+        rows = ceil(fig_count / cols)
+        aspect_ratio = figs[0].layout['width'] / figs[0].layout['height']
+        fig = tools.make_subplots(rows=rows, cols=cols, subplot_titles=[_.layout['title']['text'] for _ in figs],
+                                  horizontal_spacing=0.3 / cols, vertical_spacing=0.6 / rows)
+        for row in range(rows):
+            for col in range(cols):
+                i = col + cols * row
+                if i >= fig_count:
+                    break
+                for trace in figs[i].data:
+                    fig.append_trace(trace, row + 1, col + 1)
+        for i in range(fig_count):
+            fig['layout'][f'xaxis{i + 1}'].update(figs[i].layout['xaxis'])
+            fig['layout'][f'yaxis{i + 1}'].update(figs[i].layout['yaxis'])
+            fig['layout'][f'yaxis{i + 1}'].update(automargin=False)
+            fig['layout'][f'xaxis{i + 1}'].update(automargin=False)
+        fig['layout']['showlegend'] = False
+        fig['layout']['width'], fig['layout']['height'] = width, (width / aspect_ratio) * rows / cols + (rows - 1) * width * 0.1
+        fig['layout']["plot_bgcolor"]= "rgba(0, 0, 0, 0)"
+        fig['layout']["paper_bgcolor"] = "rgba(0, 0, 0, 0)"
+    else:
+        fig = figs[0]
+
+    if not os.path.exists("./out"):
+        os.makedirs("./out")
+    path = f'{f"./out/graph_{descr}" if descr else "./out/tmp"}'
+
+    if for_print:
+        image_filename = f"{path}.png"
+        try:
+            pio.write_image(fig, image_filename, scale=5)
+        except Exception as e:
+            print(f"While saving image in plotly offline mode Exception has occured: {e.__str__()}")
+            plotly.plotly.sign_in('EgorKorovin', 'dCuI77pcQp6bmSspU8P3')
+            plotly.plotly.image.save_as(fig, filename=image_filename)
+        display(Image(image_filename))
+    else:
+        iplot(fig)
+        plot(fig, filename=f"{path}.html", auto_open=False)
+    print(f"graph saved at {path}")
+    return fig
+
+
+def corr_series(*serieses, temperature=None, for_print=False):
+    figs = []
+    for series in serieses:
+        s = dropnas(series)
+        max_ = max(series.max(), series.index.max())
+        line = np.linspace(0, max_, 2)
+        x, y = s.index, s
+
+        traces = []
+        traces.append(go.Scatter(x=x, y=y, name=series.name, mode="markers",
+                                 marker=dict(color=temperature,
+                                             # colorbar=dict(title='Colorbar'),
+                                             colorscale='Rainbow') if temperature is not None else None))
+        traces.append(go.Scatter(x=line, y=line, line=dict(color='black'), mode="lines", showlegend=False))
+
+        mse = mean_squared_error(x, y)
+        mae = mean_absolute_error(x, y)
+        r2 = r2_score(x, y)
+
+        layout = go.Layout(
+            width=500,
+            height=500,
+            title=f"<b>{y.name} vs {x.name}</b><br>r<sup>2</sup> = {r2:.2f}<br>mse = {mse:.2f}<br>mae = {mae:.2f}",
+            showlegend=False,
+            xaxis=dict(title=x.name, range=[0, max_], nticks=6),
+            yaxis=dict(title=y.name, range=[0, max_], nticks=6)
+        )
+        fig = go.Figure(data=traces, layout=layout)
+        figs.append(fig)
+    return export_figs(*figs, descr=None, for_print=for_print)
+
+
 
 
 def graph_time(*dfs, descr=None, markers=False, for_print=False, dropna=True):
@@ -35,55 +115,19 @@ def graph_time(*dfs, descr=None, markers=False, for_print=False, dropna=True):
             series = df
             if dropna:
                 series.dropna(inplace=True)
-            traces.append(go.Scatter(x=series.index  # .to_pydatetime()
+            traces.append(go.Scatter(x=series.index.strftime("%Y-%m-%d %H:%M:%S")
                                      , y=series, name=series.name, mode="markers" if markers else None))
         else:
-
             for col in df.columns:
                 series = df[col]
                 if dropna:
                     series.dropna(inplace=True)
-                traces.append(go.Scatter(x=series.index  # .to_pydatetime()
+                traces.append(go.Scatter(x=series.index.strftime("%Y-%m-%d %H:%M:%S")
                                          , y=series, name=series.name, mode="markers" if markers else None))
-    return save_plotly_traces(traces, descr, for_print)
 
-
-def prepare_df(df, max_point_count=20000):
-    point_count = df.shape[0] * df.shape[1]
-    if point_count > max_point_count:
-        df = df[::point_count // max_point_count]
-    return df
-
-
-def save_plotly_traces(traces, descr=None, for_print=False, width=1000, height=500):
-    if isinstance(traces, go.Figure):
-        fig = traces
-    else:
-        layout = go.Layout(width=width, height=height, title=descr)
+        layout = go.Layout(width=1000, height=500, title=descr)
         fig = go.Figure(data=traces, layout=layout)
-    if not os.path.exists("./out"):
-        os.makedirs("./out")
-    if for_print:
-        image_filename = f'{f"./out/time_{descr}.jpg" if descr else "./out/tmp_graph.jpg"}'
-        try:
-            pio.write_image(fig, image_filename, scale = 5)
-        except Exception as e:
-            print(f"While saving image in plotly offline mode Exception has occured: {e.__str__()}")
-            plotly.plotly.sign_in('EgorKorovin', 'dCuI77pcQp6bmSspU8P3')
-            plotly.plotly.image.save_as(fig, filename=image_filename)
-    if descr:
-        if not for_print:
-            path = f"./out/time_{descr}.html"
-            plot(fig, filename=path, auto_open=False)
-            print(f"graph saved at {path}")
-    else:
-        if for_print:
-            display( Image(image_filename))
-        else:
-            try:
-                iplot(fig)
-            except ImportError as e:
-                print(e.__str__())
+        return export_figs(fig, descr=descr, for_print=for_print)
 
 
 def box_plot(*dfs, descr=None, for_print=False):
@@ -91,120 +135,14 @@ def box_plot(*dfs, descr=None, for_print=False):
     for df in dfs:
         for col in df.columns:
             traces.append(go.Box(y=df[col], name=col))
-    return save_plotly_traces(traces, descr, for_print)
+
+    layout = go.Layout(width=1000, height=500, title=descr)
+    fig = go.Figure(data=traces, layout=layout)
+    return export_figs(fig, descr=descr, for_print=for_print)
 
 
-def graph_corr(res, ref, descr=None):
-    graph_count = res.shape[1]
-    fig, ax = plt.subplots(nrows=1, ncols=res.shape[1], figsize=(5 * graph_count, 4))
-
-    if graph_count == 1:
-        fig, ax = plt.subplots(nrows=graph_count, ncols=1, figsize=(5, 5), dpi=100)
-        x = ref.iloc[:, 0]
-        y = res.iloc[:, 0]
-        ax.scatter(x, y)
-        ax.plot(range(int(x.min()), int(x.max())), range(int(x.min()), int(x.max())), color='black')
-
-        max_ = int(x.max())
-        ax.plot(range(max_), range(max_), c='k')
-
-        mse = mean_squared_error(x, y)
-        mae = mean_absolute_error(x, y)
-        r2 = r2_score(x, y)
-        text = f'mse = {mse:.2f} \n mae = {mae:.2f} \n r2 = {r2:.2f}'
-        ax.annotate(text, xy=(0.05, 0.8), xycoords='axes fraction')
-
-        ax.set_title(x.name)
-        ax.set_xlabel(x.name)
-        ax.set_ylabel(y.name)
-        ax.grid()
-    else:
-        for i in range(graph_count):
-            tmp_df = pd.DataFrame()
-            tmp_df[ref.columns[i]] = ref.iloc[:, i]
-            tmp_df[res.columns[i]] = res.iloc[:, i]
-            tmp_df.dropna(inplace=True)
-            x = tmp_df.iloc[:, 0]
-            y = tmp_df.iloc[:, 1]
-
-            ax[i].scatter(x, y)
-            ax[i].plot(range(int(x.min()), int(x.max())), range(int(x.min()), int(x.max())), color='black')
-
-            max_ = y.max()
-            ax[i].plot(np.linspace(0, max_, 5), np.linspace(0, max_, 5), c='k')
-            print(max_)
-
-            mse = mean_squared_error(x, y)
-            mae = mean_absolute_error(x, y)
-            r2 = r2_score(x, y)
-            text = f'mse = {mse:.2f} \n mae = {mae:.2f} \n r2 = {r2:.2f}'
-            ax[i].annotate(text, xy=(0.05, 0.8), xycoords='axes fraction')
-
-            ax[i].set_title(res.columns[i])
-            ax[i].set_xlabel(x.name)
-            ax[i].set_ylabel(y.name)
-            ax[i].grid()
-    if descr:
-        plt.savefig(f'./out/corr_{descr}.png')
-    else:
-        plt.show()
-
-
-def graph_time_matplotlib(df, serial_number="", save_file=True, serial_numer_for_path=None):
-    params_to_show = {
-        'PM2.5': 'grey',
-        'RH': 'royalblue',
-        'T': 'tomato',
-        'CO2': 'C0',
-        'O3': 'blue',
-        'SO2': 'red',
-        'NO2': 'red',
-        'CO': 'black',
-        'H2S': 'yellow'
-    }
-    if len(df.index) != 0:
-        df = df.resample('10T').mean()
-    params = (list(filter(lambda param: param in list(params_to_show.keys()), df.columns)))
-    params.sort()
-    graph_count = len(params)
-
-    if graph_count == 0 or len(df.index) == 0:
-        fig, ax = plt.subplots(nrows=1, ncols=1, figsize=(10, 5 * 1), dpi=100)
-        ax.plot([0], [0])
-        ax.annotate(f"{serial_number} has no data", xy=(0.03, 0.92), xycoords='axes fraction', fontweight='bold',
-                    backgroundcolor="w")
-        ax.grid()
-    elif graph_count == 1:
-        param = params[0]
-        fig, ax = plt.subplots(nrows=graph_count, ncols=1, figsize=(10, 5 * graph_count), dpi=100)
-        ax.plot([mdates.date2num(d) for d in df.index], df[param], color=params_to_show[param])
-        ax.annotate(serial_number, xy=(0.03, 0.92), xycoords='axes fraction', fontweight='bold',
-                    backgroundcolor="w")
-        ax.set_ylabel(param)
-        ax.xaxis.set_major_formatter(mdates.DateFormatter('%d %b'))
-        ax.grid()
-    else:
-        # df = df.resample('10T').mean()
-        x = [mdates.date2num(d) for d in df.index]
-        fig, ax = plt.subplots(nrows=graph_count, ncols=1, figsize=(10, 5 * graph_count), dpi=100)
-        for i, param in enumerate(params):
-            ax[i].plot(x, df[param], color=params_to_show[param])
-            ax[i].annotate(serial_number, xy=(0.03, 0.92), xycoords='axes fraction', fontweight='bold',
-                           backgroundcolor="w")
-            ax[i].set_ylabel(param)
-            ax[i].xaxis.set_major_formatter(mdates.DateFormatter('%d %b'))
-            ax[i].grid()
-    if save_file:
-        path = f'{serial_numer_for_path if serial_numer_for_path else serial_number}_graph.png'
-        plt.savefig(path)
-        return (path)
-    else:
-        plt.show()
-
-
-
-
-
-
-
-
+def prepare_df(df, max_point_count=20000):
+    point_count = df.shape[0] * df.shape[1]
+    if point_count > max_point_count:
+        df = df[::point_count // max_point_count]
+    return df
