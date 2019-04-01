@@ -26,7 +26,7 @@ def dropnas(series):
 
 
 class Sensor:
-    def __init__(self, ref_data, sensor_data, param_name='Parameter'):
+    def __init__(self, ref_data=None, sensor_data=None, param_name='Parameter'):
         self.ref = ref_data
         self.sensor_data = sensor_data
         self.param_name = param_name
@@ -51,4 +51,7 @@ class Sensor:
         pass
 
     def to_csv(self):
+        pass
+
+    def read_csv(self):
         pass

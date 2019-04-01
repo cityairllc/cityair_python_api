@@ -47,10 +47,10 @@ def export_figs(*figs, descr=None, for_print=False, cols=3, width=1000):
             fig['layout'][f'xaxis{i + 1}'].update(automargin=False)
         fig['layout']['showlegend'] = False
         fig['layout']['width'], fig['layout']['height'] = width, (width / aspect_ratio) * rows / cols + (rows - 1) * width * 0.1
-        fig['layout']["plot_bgcolor"]= "rgba(0, 0, 0, 0)"
-        fig['layout']["paper_bgcolor"] = "rgba(0, 0, 0, 0)"
     else:
         fig = figs[0]
+    fig['layout']["plot_bgcolor"] = "rgba(0, 0, 0, 0)"
+    fig['layout']["paper_bgcolor"] = "rgba(0, 0, 0, 0)"
 
     if not os.path.exists("./out"):
         os.makedirs("./out")

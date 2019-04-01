@@ -25,6 +25,4 @@ device_serial_number = devices[0]
 df_device = r.get_device_data(device_serial_number)
 df_devices = r.get_devices_data(devices, param='PM2.5')
 
-# all graphs are to be used inside jupyter notebooks,
-# although you can save graph_time as html file if you provide descr as argument
-graph_time(df_devices, descr="out")
+
