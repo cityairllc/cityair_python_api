@@ -72,7 +72,7 @@ def export_figs(*figs, descr=None, for_print=False, cols=3, width=1000):
     return fig
 
 
-def corr_series(*serieses, temperature=None, for_print=False):
+def corr_series(*serieses, temperature=None, for_print=False, cols=4, descr = None):
     figs = []
     for series in serieses:
         s = dropnas(series)
@@ -101,7 +101,7 @@ def corr_series(*serieses, temperature=None, for_print=False):
         )
         fig = go.Figure(data=traces, layout=layout)
         figs.append(fig)
-    return export_figs(*figs, descr=None, for_print=for_print)
+    return export_figs(*figs, descr=descr, for_print=for_print, cols  = cols)
 
 
 
