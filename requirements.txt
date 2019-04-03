@@ -4,3 +4,4 @@ matplotlib
 plotly
 sklearn
 psutil
+pandas

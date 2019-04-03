@@ -6,6 +6,7 @@ from sklearn.metrics import mean_absolute_error, mean_squared_error, r2_score
 
 from plotly.offline import init_notebook_mode, plot, iplot
 from plotly import plotly
+import plotly.offline
 from plotly import tools
 from plotly.offline import iplot, init_notebook_mode
 import plotly.graph_objs as go
@@ -25,7 +26,7 @@ except Exception as e:
     pass
 
 
-def export_figs(*figs, descr=None, for_print=False, cols=3, width=1000):
+def plot(*figs, descr=None, for_print=False, cols=3, width=1000):
     fig_count = len(figs)
     if fig_count > 1:
         cols = min(fig_count, cols)
@@ -46,7 +47,8 @@ def export_figs(*figs, descr=None, for_print=False, cols=3, width=1000):
             fig['layout'][f'yaxis{i + 1}'].update(automargin=False)
             fig['layout'][f'xaxis{i + 1}'].update(automargin=False)
         fig['layout']['showlegend'] = False
-        fig['layout']['width'], fig['layout']['height'] = width, (width / aspect_ratio) * rows / cols + (rows - 1) * width * 0.1
+        fig['layout']['width'], fig['layout']['height'] = width, (width / aspect_ratio) * rows / cols + (
+                rows - 1) * width * 0.1
     else:
         fig = figs[0]
     fig['layout']["plot_bgcolor"] = "rgba(0, 0, 0, 0)"
@@ -67,46 +69,41 @@ def export_figs(*figs, descr=None, for_print=False, cols=3, width=1000):
         display(Image(image_filename))
     else:
         iplot(fig)
-        plot(fig, filename=f"{path}.html", auto_open=False)
+        plotly.offline.plot(fig, filename=f"{path}.html", auto_open=False)
     print(f"graph saved at {path}")
     return fig
 
 
-def corr_series(*serieses, temperature=None, for_print=False, cols=4, descr = None):
-    figs = []
-    for series in serieses:
-        s = dropnas(series)
-        max_ = max(series.max(), series.index.max())
-        line = np.linspace(0, max_, 2)
-        x, y = s.index, s
+def corr_(x, y=None, temperature=None, metrics=[], line_func=lambda x: x):
+    if isinstance(x, pd.Series):
+        df = pd.concat([series.resample('1T').mean() for series in [x, y]], axis=1)
+    else:
+        df = x
+    df.dropna(inplace=True)
+    x, y = df.iloc[:, 0], df.iloc[:, 1]
 
-        traces = []
-        traces.append(go.Scatter(x=x, y=y, name=series.name, mode="markers",
-                                 marker=dict(color=temperature,
-                                             # colorbar=dict(title='Colorbar'),
-                                             colorscale='Rainbow') if temperature is not None else None))
-        traces.append(go.Scatter(x=line, y=line, line=dict(color='black'), mode="lines", showlegend=False))
+    traces = []
+    traces.append(go.Scatter(x=x, y=y, name=y.name, mode="markers",
+                             marker=dict(color=temperature,
+                                         # colorbar=dict(title='Colorbar'),
+                                         colorscale='Rainbow') if temperature is not None else None))
+    if line_func:
+        line_x = np.linspace(0, x.max(), 300)
+        line_y = [line_func(x) for x in line_x]
+        traces.append(go.Scatter(x=line_x, y=line_y, line=dict(color='black'), mode="lines", showlegend=False))
 
-        mse = mean_squared_error(x, y)
-        mae = mean_absolute_error(x, y)
-        r2 = r2_score(x, y)
-
-        layout = go.Layout(
-            width=500,
-            height=500,
-            title=f"<b>{y.name} vs {x.name}</b><br>r<sup>2</sup> = {r2:.2f}<br>mse = {mse:.2f}<br>mae = {mae:.2f}",
-            showlegend=False,
-            xaxis=dict(title=x.name, range=[0, max_], nticks=6),
-            yaxis=dict(title=y.name, range=[0, max_], nticks=6)
-        )
-        fig = go.Figure(data=traces, layout=layout)
-        figs.append(fig)
-    return export_figs(*figs, descr=descr, for_print=for_print, cols  = cols)
+    layout = go.Layout(
+        width=500,
+        height=500,
+        title=f"<b>{y.name} vs {x.name}</b><br>{'<br>'.join([f'{metric}={metrics[metric]}' for metric in metrics])}",
+        showlegend=False,
+        xaxis=dict(title=x.name, range=[0, x.max()], nticks=6),
+        yaxis=dict(title=y.name, range=[0, line_func(x.max())] if line_func else None, nticks=6)
+    )
+    return go.Figure(data=traces, layout=layout)
 
 
-
-
-def graph_time(*dfs, descr=None, markers=False, for_print=False, dropna=True):
+def time_(*dfs, descr=None, markers=False, for_print=False, dropna=True):
     traces = []
     for df in dfs:
         if for_print:
@@ -126,8 +123,7 @@ def graph_time(*dfs, descr=None, markers=False, for_print=False, dropna=True):
                                          , y=series, name=series.name, mode="markers" if markers else None))
 
         layout = go.Layout(width=1000, height=500, title=descr)
-        fig = go.Figure(data=traces, layout=layout)
-        return export_figs(fig, descr=descr, for_print=for_print)
+        return go.Figure(data=traces, layout=layout)
 
 
 def box_plot(*dfs, descr=None, for_print=False):
@@ -137,8 +133,7 @@ def box_plot(*dfs, descr=None, for_print=False):
             traces.append(go.Box(y=df[col], name=col))
 
     layout = go.Layout(width=1000, height=500, title=descr)
-    fig = go.Figure(data=traces, layout=layout)
-    return export_figs(fig, descr=descr, for_print=for_print)
+    return go.Figure(data=traces, layout=layout)
 
 
 def prepare_df(df, max_point_count=20000):

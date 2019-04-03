@@ -55,3 +55,6 @@ class Sensor:
 
     def read_csv(self):
         pass
+   #mse = mean_squared_error(x, y)
+  #  mae = mean_absolute_error(x, y)
+   # r2 = r2_score(x, y)
