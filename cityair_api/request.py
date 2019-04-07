@@ -85,7 +85,7 @@ class CityAirRequest:
             df_pretty.index.name = 'S/N'
             return df_pretty
         else:
-            raise Exception(f"Unkown type of request: {type}")
+            raise Exception(f"Unknown type of request: {type}")
 
     def get_last_packet(self, serial_number):
         filter = {
