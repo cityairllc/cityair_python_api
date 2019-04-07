@@ -135,7 +135,6 @@ class CityAirRequest:
         try:
             params_to_throw = ['IsSendDateReal', 'PacketId', 'DeviceId','StationId', 'IsSendDateReal', 'Tag',
                                'GeoInfo']
-            print(response.json()['Result']['Packets'][0])
             last_packet = response.json()['Result']['Packets'][0]
             res = dict([(param, last_packet[param]) if (last_packet[param] and param not in params_to_throw) else (
                 'SendDate', last_packet['SendDate']) for param in last_packet])
@@ -283,7 +282,7 @@ class CityAirRequest:
 
     def get_station_data(self, station_id,
                          start_date=None,
-                         finish_date=datetime.datetime.now(), period='5min', utc_hour_dif=7, print_response=True,
+                         finish_date=datetime.datetime.now(), period='5min', utc_hour_dif=0, print_response=True,
                          print_json=False,
                          params=None):
         time_periods = {'5min': 1, '20min': 2, '1hr': 3, '24hr': 4}
@@ -391,10 +390,12 @@ class CityAirRequest:
                 new_series = \
                     self.get_station_data(station_id, start_date, finish_date, period, utc_hour_dif, print_response)[
                         param]
+
             except Exception:
                 new_series = pd.Series()
             new_series.name = station_id
             df = pd.concat([df, new_series], axis=1)
+        df.columns = station_ids
         mo_names = self.get_stations()
         df.columns = [mo_names[mo_id] for mo_id in df.columns]
         return df

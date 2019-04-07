@@ -1,5 +1,5 @@
-from request import CityAirRequest
-from graphs import *
+from cityair_api import CityAirRequest
+
 #test
 login = 'CityAir_demo'
 psw = 'cityAirDemoPassword231'
