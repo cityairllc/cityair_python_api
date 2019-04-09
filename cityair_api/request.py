@@ -23,8 +23,7 @@ class CityAirRequest:
 
         self.request_url = f'https://cityair.io/backend-api/request.php?map=/'
         if dev:
-            self.request_url.replace("request.php", "request-dev.php")
-
+            self.request_url = self.request_url.replace("request.php", "request-dev.php")
         self.device_data_url = f'{self.request_url}DevicesApi/GetPackets'
         self.devices_url = f'{self.request_url}DevicesApi/GetDevices'
         self.stations_url = f'{self.request_url}MonitoringStationsApi/GetMonitoringStations'
