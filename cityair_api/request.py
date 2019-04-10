@@ -59,7 +59,10 @@ class CityAirRequest:
 
     def get_devices(self, type='series', silent=True):
         df = self.make_request(self.devices_url, {}, 'Devices', silent)
+
         if type == 'series':
+            if len(df.index) == 0:
+                return pd.Series(name = 'SerialNumber')
             return pd.Series(index=df['DeviceId'], data=df['SerialNumber']).dropna()
         elif type == 'list':
             return list(df['SerialNumber'])
@@ -67,6 +70,8 @@ class CityAirRequest:
             return df
         elif type == 'pretty':
             df_pretty = pd.DataFrame()
+            if len(df.index) == 0:
+                return df_pretty
             df_pretty['Имя'] = df['Name']
             df_pretty['Онлайн'] = df['IsOffline'].apply(
                 lambda online: "неизвестно" if online is None else '<b>Нет</b>' if online else 'Да')
