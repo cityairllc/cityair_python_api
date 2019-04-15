@@ -6,7 +6,7 @@ enjoy and feel free to leave a feedback at feedback@cityair.ru
 
 Installing
 ^^^^^^^^^^^^^^^^^^^^^
-the last available version is 0.1.1. You can install or upgrade the stable cityair-api version with: ::
+the last available version is 0.1.*. You can install or upgrade the stable cityair-api version with: ::
 
     $ pip install cityair-api -U
 
