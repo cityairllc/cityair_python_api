@@ -146,7 +146,7 @@ class CityAirRequest:
         df.sort_index(axis=0, level=None, ascending=True, inplace=True)
         df.columns = [self.right_cols[col.lower()] if col.lower(
         ) in self.right_cols else col for col in df.columns]
-        return df.dropna(axis=1)
+        return df.dropna(axis = 1, how = 'all')
 
     def get_devices_data(self, *serial_numbers, start_date=None,
                          finish_date=None, param='PM2.5', utc_hour_dif=7):
