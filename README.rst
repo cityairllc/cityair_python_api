@@ -49,6 +49,6 @@ The main steps are the same as with stations API: ::
 afterward get data from single or multiple sources: ::
 
     df = r.get_device_data(device_serial_number)
-    df = r.get_devices_data(devices, param='PM2.5')
+    df = r.get_devices_data(*devices, param='PM2.5')
 
 

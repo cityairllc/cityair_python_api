@@ -8,10 +8,11 @@ import json
 
 class CityAirRequest:
 
-    def __init__(self, user, psw, dev=False, raw=False, request_timeout=5, silent=False):
+    def __init__(self, user, psw, dev=False, raw=False, request_timeout=5, silent=False, debug=False):
         self.user = user
         self.psw = psw
         self.request_timeout = request_timeout
+        self.debug = debug
         self.silent = silent
         self.right_cols = {
             'temperature': 'T',
@@ -23,27 +24,33 @@ class CityAirRequest:
 
         self.request_url = f'https://cityair.io/backend-api/request.php?map=/'
         if dev:
-            self.request_url = self.request_url.replace("request.php", "request-dev.php")
+            self.request_url = self.request_url.replace(
+                "request.php", "request-dev.php")
         self.device_data_url = f'{self.request_url}DevicesApi/GetPackets'
         self.devices_url = f'{self.request_url}DevicesApi/GetDevices'
         self.stations_url = f'{self.request_url}MonitoringStationsApi/GetMonitoringStations'
         self.station_data_url = f'{self.request_url}MonitoringStationsApi/GetMonitoringStationPackets'
         if raw:
-            self.devices_url.replace("DevicesApi", "DevicesApiRaw")
+            self.devices_url = self.devices_url.replace("DevicesApi", "DevicesApiRaw")
+            self.device_data_url = self.device_data_url.replace("DevicesApi", "DevicesApiRaw")
         self.device_serials = self.get_devices(type='series')
-        print(f"Welcome, {user}. You have {len(self.device_serials)} devices available!")
+        print(
+            f"Welcome, {user}. You have {len(self.device_serials)} devices available!")
 
     def make_request(self, url, filter, desciption, silent):
         body = {"Auth": {"User": self.user,
                          "Pwd": self.psw},
                 "Filter": filter}
         start_time = time.time()
+        if self.debug:
+            print(f"request_url: {url}\nrequest: {str(body).replace(self.psw, '***').replace(self.user, '***')}")
         try:
-            response = requests.post(url, json=body, timeout=self.request_timeout)
+            response = requests.post(
+                url, json=body, timeout=self.request_timeout)
             response.raise_for_status()
         except requests.Timeout:
             raise Exception(
-                f"Server didn't respon in {self.request_timeout} seconds")
+                f"Server didn't respond in {self.request_timeout} seconds")
         except Exception as e:
             raise Exception(
                 f"Error while getting data: \n"
@@ -51,7 +58,8 @@ class CityAirRequest:
                 f"url: {url}\n"
                 f"request: {str(body).replace(self.psw, '***').replace(self.user, '***')}")
         if response.json()['IsError']:
-            raise Exception(f"{response.json()['ErrorMessage']}:\n{response.json()['ErrorMessageDetals']}")
+            raise Exception(
+                f"{response.json()['ErrorMessage']}:\n{response.json()['ErrorMessageDetals']}")
         df = json_normalize(response.json()['Result'][desciption])
         if not silent:
             print(f"Got {df.shape} for {time.time() - start_time:.2f} seconds")
@@ -62,8 +70,8 @@ class CityAirRequest:
 
         if type == 'series':
             if len(df.index) == 0:
-                return pd.Series(name = 'SerialNumber')
-            return pd.Series(index=df['DeviceId'], data=df['SerialNumber']).dropna()
+                return pd.Series(name='SerialNumber')
+            return pd.Series(data=list(df['SerialNumber']), index=df['DeviceId']).dropna()
         elif type == 'list':
             return list(df['SerialNumber'])
         elif type == 'raw':
@@ -98,7 +106,8 @@ class CityAirRequest:
             "MaxPacketsCount": 1,
             "Skip": 0
         }
-        last_packet = dict(self.make_request(self.device_data_url, filter, 'Packets', True).iloc[0])
+        last_packet = dict(self.make_request(
+            self.device_data_url, filter, 'Packets', True).iloc[0])
         params_to_throw = ['IsSendDateReal', 'PacketId', 'DeviceId', 'StationId', 'IsSendDateReal', 'Tag',
                            'GeoInfo.Latitude', 'GeoInfo.Longitude']
         return dict([(param, last_packet[param]) if (last_packet[param] and param not in params_to_throw) else (
@@ -107,25 +116,36 @@ class CityAirRequest:
     def get_device_data(self, serial_number, start_date=None,
                         finish_date=None, utc_hour_dif=7, max_packets_count=1000):
         if finish_date:
-            finish_date = self.to_date(finish_date) - datetime.timedelta(hours=utc_hour_dif)
+            finish_date = self.to_date(
+                finish_date) - datetime.timedelta(hours=utc_hour_dif)
         else:
-            finish_date = pd.to_datetime(self.get_last_packet(serial_number)['SendDate'])
+            finish_date = datetime.datetime.now()
         if start_date:
-            start_date = self.to_date(start_date) - datetime.timedelta(hours=utc_hour_dif)
+            start_date = self.to_date(start_date) - \
+                         datetime.timedelta(hours=utc_hour_dif)
+            filter = {
+                "FilterType": 2,
+                "BeginTime": start_date.isoformat(),
+                "EndTime": finish_date.isoformat(),
+                "DeviceId": f'{(self.device_serials[self.device_serials==serial_number].index)[0]}',
+                "MaxPacketsCount": max_packets_count,
+                "Skip": 0}
         else:
-            start_date = finish_date - datetime.timedelta(days=7)
-        filter = {
-            "FilterType": 2,
-            "BeginTime": start_date.isoformat(),
-            "EndTime": finish_date.isoformat(),
-            "DeviceId": f'{(self.device_serials[self.device_serials==serial_number].index)[0]}',
-            "MaxPacketsCount": max_packets_count,
-            "Skip": 0}
-        df = self.make_request(self.device_data_url, filter, 'Packets', self.silent)
-        df.index = pd.to_datetime(df.SendDate, dayfirst=True) + datetime.timedelta(hours=utc_hour_dif)
+            filter = {
+                'FilterType': 1,
+                "DeviceId": f'{(self.device_serials[self.device_serials==serial_number].index)[0]}',
+                "MaxPacketsCount": max_packets_count,
+                "Skip": 0
+            }
+
+        df = self.make_request(self.device_data_url,
+                               filter, 'Packets', self.silent)
+        df.index = pd.to_datetime(
+            df.SendDate, dayfirst=True) + datetime.timedelta(hours=utc_hour_dif)
         df.index.name = 'Date'
         df.sort_index(axis=0, level=None, ascending=True, inplace=True)
-        df.columns = [self.right_cols[col.lower()] if col.lower() in self.right_cols else col for col in df.columns]
+        df.columns = [self.right_cols[col.lower()] if col.lower(
+        ) in self.right_cols else col for col in df.columns]
         return df.dropna(axis=1)
 
     def get_devices_data(self, *serial_numbers, start_date=None,
@@ -144,7 +164,8 @@ class CityAirRequest:
 
     def get_stations(self, full_info=False):
         filter = {}
-        df = self.make_request(self.stations_url, filter, 'MonitoringStations', silent=True)
+        df = self.make_request(self.stations_url, filter,
+                               'MonitoringStations', silent=True)
         df.index = df.MonitoringObjectId
         if full_info:
             return df
@@ -172,7 +193,8 @@ class CityAirRequest:
                 "SkipFromLast": 0,
                 "TakeCount": 2016
             }
-        tmp_df = self.make_request(self.station_data_url, filter, 'PacketItems', self.silent)
+        tmp_df = self.make_request(
+            self.station_data_url, filter, 'PacketItems', self.silent)
         if len(tmp_df.index) == 0:
             return pd.DataFrame(columns=['PM2.5', 'PM10', 'T', 'RH', 'P'])
         df = pd.DataFrame()
@@ -186,7 +208,8 @@ class CityAirRequest:
                   self.get_stations(full_info=True)['PacketParamLinkItems'][station_id]])
         df.columns = [d[param_id] for param_id in df.columns]
         # переименоываю, чтоб красивее было
-        df.columns = [self.right_cols[col.lower()] if col.lower() in self.right_cols else col for col in df.columns]
+        df.columns = [self.right_cols[col.lower()] if col.lower(
+        ) in self.right_cols else col for col in df.columns]
         df.sort_index(axis=0, level=None, ascending=True, inplace=True)
         return df
 
@@ -197,7 +220,8 @@ class CityAirRequest:
         for station_id in station_ids:
             try:
                 new_series = \
-                    self.get_station_data(station_id, start_date, finish_date, period)[param]
+                    self.get_station_data(
+                        station_id, start_date, finish_date, period)[param]
             except Exception:
                 new_series = pd.Series()
             new_series.name = station_id
