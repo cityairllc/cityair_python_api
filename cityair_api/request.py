@@ -65,18 +65,18 @@ class CityAirRequest:
             print(f"Got {df.shape} for {time.time() - start_time:.2f} seconds")
         return df
 
-    def get_devices(self, type='series', silent=True):
+    def get_devices(self, format='series', silent=True):
         df = self.make_request(self.devices_url, {}, 'Devices', silent)
 
-        if type == 'series':
+        if format == 'series':
             if len(df.index) == 0:
                 return pd.Series(name='SerialNumber')
             return pd.Series(data=list(df['SerialNumber']), index=df['DeviceId']).dropna()
-        elif type == 'list':
+        elif format == 'list':
             return list(df['SerialNumber'])
-        elif type == 'raw':
+        elif format == 'raw':
             return df
-        elif type == 'pretty':
+        elif format == 'pretty':
             df_pretty = pd.DataFrame()
             if len(df.index) == 0:
                 return df_pretty
@@ -97,7 +97,7 @@ class CityAirRequest:
             df_pretty.index.name = 'S/N'
             return df_pretty
         else:
-            raise Exception(f"Unknown type of request: {type}")
+            raise Exception(f"Unknown type of request: {format}. Available format requests are: series, list, raw, pretty")
 
     def get_last_packet(self, serial_number):
         filter = {
