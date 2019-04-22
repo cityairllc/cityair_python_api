@@ -33,7 +33,7 @@ class CityAirRequest:
         if raw:
             self.devices_url = self.devices_url.replace("DevicesApi", "DevicesApiRaw")
             self.device_data_url = self.device_data_url.replace("DevicesApi", "DevicesApiRaw")
-        self.device_serials = self.get_devices(type='series')
+        self.device_serials = self.get_devices(format='series')
         print(
             f"Welcome, {user}. You have {len(self.device_serials)} devices available!")
 
@@ -114,7 +114,7 @@ class CityAirRequest:
             'SendDate', last_packet['SendDate']) for param in last_packet])
 
     def get_device_data(self, serial_number, start_date=None,
-                        finish_date=None, utc_hour_dif=7, max_packets_count=1000):
+                        finish_date=None, utc_hour_dif=7, max_packets_count=10000):
         if finish_date:
             finish_date = self.to_date(
                 finish_date) - datetime.timedelta(hours=utc_hour_dif)
@@ -149,12 +149,12 @@ class CityAirRequest:
         return df.dropna(axis = 1, how = 'all')
 
     def get_devices_data(self, *serial_numbers, start_date=None,
-                         finish_date=None, param='PM2.5', utc_hour_dif=7):
+                         finish_date=None, param='PM2.5', utc_hour_dif=7,  max_packets_count = 10000):
         df = pd.DataFrame()
         for serial_number in serial_numbers:
             try:
-                new_series = self.get_device_data(serial_number, start_date, finish_date, utc_hour_dif)[
-                    param].resample('1T').mean()
+                new_series = self.get_device_data(serial_number, start_date=start_date, finish_date=finish_date, utc_hour_dif=utc_hour_dif,
+                                                  max_packets_count=max_packets_count)[param].resample('1T').mean()
             except Exception as e:
                 print(e.__str__())
                 new_series = pd.Series()
