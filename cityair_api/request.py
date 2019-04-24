@@ -48,7 +48,8 @@ class CityAirRequest:
             response = requests.post(
                 url, json=body, timeout=self.request_timeout)
             response.raise_for_status()
-            print(f"response: {response.json()}")
+            if self.debug:
+                print(f"response: {response.json()}")
         except requests.Timeout:
             raise Exception(
                 f"Server didn't respond in {self.request_timeout} seconds")
