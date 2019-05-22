@@ -99,7 +99,8 @@ class CityAirRequest:
             df_pretty.index.name = 'S/N'
             return df_pretty
         else:
-            raise Exception(f"Unknown type of request: {format}. Available format requests are: series, list, raw, pretty")
+            raise Exception(
+                f"Unknown type of request: {format}. Available format requests are: series, list, raw, pretty")
 
     def get_last_packet(self, serial_number):
         filter = {
@@ -148,14 +149,15 @@ class CityAirRequest:
         df.sort_index(axis=0, level=None, ascending=True, inplace=True)
         df.columns = [self.right_cols[col.lower()] if col.lower(
         ) in self.right_cols else col for col in df.columns]
-        return df.dropna(axis = 1, how = 'all')
+        return df.dropna(axis=1, how='all')
 
     def get_devices_data(self, *serial_numbers, start_date=None,
-                         finish_date=None, param='PM2.5', utc_hour_dif=7,  max_packets_count = 10000):
+                         finish_date=None, param='PM2.5', utc_hour_dif=7, max_packets_count=10000):
         df = pd.DataFrame()
         for serial_number in serial_numbers:
             try:
-                new_series = self.get_device_data(serial_number, start_date=start_date, finish_date=finish_date, utc_hour_dif=utc_hour_dif,
+                new_series = self.get_device_data(serial_number, start_date=start_date, finish_date=finish_date,
+                                                  utc_hour_dif=utc_hour_dif,
                                                   max_packets_count=max_packets_count)[param].resample('1T').mean()
             except Exception as e:
                 print(e.__str__())
@@ -239,6 +241,6 @@ class CityAirRequest:
             return date_string
         else:
             try:
-                return pd.to_datetime(date_string, dayfirst=True)
+                return pd.to_datetime(date_string, dayfirst =True)
             except Exception:
                 raise Exception("Wrong date format")
