@@ -36,7 +36,7 @@ then you can get the data collected by the stations. Important arguments are:
 
 ... or by multiple stations: ::
 
-   df = r.get_stations_data(*stations.index, param = 'PM2,5')
+   df = r.get_stations_data(*stations.index, param = 'PM2.5')
   
 Getting data directly from devices
 ******************************************
