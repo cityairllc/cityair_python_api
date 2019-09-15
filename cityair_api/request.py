@@ -69,13 +69,19 @@ class CityAirRequest:
             except IndexError:
                 id_ = 'undefined'
             print(f"Got {id_} data of shape {df.shape} for {time.time() - start_time:.2f} seconds")
+        if df.empty:
+                raise pd.errors.EmptyDataError(
+                    f"No data for such request"
+                    f"request body: {str(body).replace(self.psw, '***').replace(self.user, '***')}")
         return df
 
-    def get_devices(self, format='series', silent=True):
+    def get_devices(self, format='series', silent=True, filter_offline = False):
         df = self.make_request(self.devices_url, {}, 'Devices', silent)
         df.index = df['SerialNumber']
         df.index.name = 'S/N'
         df['Online'] = df['IsOffline'].apply(lambda x: not x)
+        if filter_offline:
+                df = df[df['Online']]
         if format == 'series':
             if len(df.index) == 0:
                 return pd.Series(name='SerialNumber')
@@ -251,4 +257,5 @@ class CityAirRequest:
                 return pd.to_datetime(date_string, dayfirst=True)
             except Exception:
                 raise Exception("Wrong date format")
+
 
