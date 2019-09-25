@@ -6,57 +6,91 @@ import time
 import json
 from collections.abc import Iterable
 from collections import Counter
+from .utils import to_date
+from .exceptions import *
 
 RIGHT_PARAMS_NAMES = {'FlagBatLow': 'BatLow', 'FlagPs220': '220', 'RecvDate': 'RecieveDate',
                       'SendDate': 'Date', 'Temperature': 'T',
                       'Humidity': 'RH', 'Pressure': 'P'}
+DEFAULT_HOST = "http://185.171.100.156:49106"
 
 
 class CityAirRequest:
-
     def __init__(self, user, psw, **kwargs):
+        self.host_url = kwargs.get('main_url', DEFAULT_HOST)
         self.timeout = kwargs.get('timeout', 100)
-        self.silent = kwargs.get('silent')
-        self.main_url = kwargs.get('main_url', "http://185.171.100.156:49106")
-        if kwargs.get('dev'):
-            self.request_url = self.request_url.replace("request.php", "request-dev.php")
-        response = self.make_request(f"Auth/Init", User=user, Pwd=psw)
-        self.token = response['Token']
-        print(
-            f"Welcome, {user}! You have access to {len(response['UserItem']['DeviceIds'])} devices and {len(
-                response['UserItem']['MoIds'])} monitoring stations")
+        self.token = self._make_request(f"Auth/Init", 'Token', User=user, Pwd=psw)
 
-    def make_request(self, method_url, **kwargs):
+    def _make_request(self, method_url, *keys, **kwargs):
         body = {"Token": getattr(self, 'token', None), **kwargs}
-        url = f"{self.main_url}/{method_url}"
-        response = requests.post(url, json=body, timeout=self.timeout).json()
-        if response['IsError']:
+        url = f"{self.host_url}/{method_url}"
+        response = requests.post(url, json=body, timeout=self.timeout)
+        if response.json()['IsError']:
+            raise ServerException(response)
+        response_data = response.json()['Result']
+        for key in keys:
+            if len(response_data[key]) == 0:
+                raise EmptyDataException(response)
+        if len(keys) == 0:
+            return response_data
+        elif len(keys) == 1:
+            return response_data[keys[0]]
+        else:
+            return [response_data[key] for key in keys]
+
+    def get_devices(self, format='list', include_offline=True, include_children=False):
+        value_types_data, devices_data = self._make_request(f"DevicesApi2/GetDevices", "PacketsValueTypes", "Devices")
+        value_types_data = pd.DataFrame.from_records(value_types_data)
+        self.value_types = dict(zip(value_types_data['ValueType'], value_types_data['TypeName']))
+        df = pd.DataFrame.from_records(devices_data)
+        df.index = df['SerialNumber']
+        if not include_offline:
+            df = df[~ df['IsOffline']]
+        if format == 'dict':
+            res = []
+            for serial in df.index:
+                info = df.loc[serial]
+                res.append({'serial_number': info['SerialNumber'],
+                            'name': info['DeviceName']})
+                if include_children:
+                    res[-1]['children'] = []
+                    for child in info['ChildDevices']:
+                        res[-1]['children'].append({'serial_number': child['SerialNumber'],
+                                                    'name': child['DeviceName']})
+            return res
+        # saving dict to idntify device by id
+        self.device_serials = dict(zip(df['DeviceId'], df['SerialNumber']))
+        self.device_ids = dict(zip(df['SerialNumber'], df['DeviceId']))
+        for children in df['ChildDevices']:
+            if children:
+                for child in children:
+                    self.device_serials[child.get('DeviceId')] = child.get('SerialNumber')
+
+        if include_children:
+            for i in range(df.shape[0]):
+                line = df.iloc[i]
+                for device in line['ChildDevices']:
+                    df = df.append(device, ignore_index=True)
+        if format == 'list':
+            return df.index
+        if format == 'raw':
+            return df
+        else:
             raise Exception(
-                f"Error while getting data: \n"
-                f"url: {url}\n"
-                f"request: {str(body)}\n"
-                f"{response['ErrorMessage']}:\n"
-                f"{response['ErrorMessageDetals']}")
-        return response['Result']
+                f"Unknown type of fromat arqument: {format}. Available formats are: list, raw, dict")
 
-    def get_devices(self, filter_offline=False):
-        response = r.make_request(f"DevicesApi2/GetDevices")
-        _ = pd.DataFrame.from_records(response["PacketsValueTypes"])
-        self.value_types = dict(zip(_['ValueType'], _['TypeName']))
-        res = pd.DataFrame.from_records(response["Devices"])
-        if filter_offline:
-            res = res[~ res['IsOffline']]
-        self.device_serials = dict(zip(res['DeviceId'], res['SerialNumber']))
-        self.device_ids = dict(zip(res['SerialNumber'], res['DeviceId']))
-        res.set_index('SerialNumber', inplace=True)
+    def get_device_data(self, serial_number, start_date=None,
+                        finish_date=datetime.datetime.now(),
+                        take_count=1000, all_cols=False,
+                        separate_device_data=True):
+        def finilize_df(df, all_cols=all_cols):
+            cols_to_drop = ['220', 'BatLow', 'RecieveDate', 'GeoInfo', 'Date', 'SendDate', 'Latitude', 'Longitude']
+            df.rename(RIGHT_PARAMS_NAMES, inplace=True, axis=1)
+            df.dropna(how='all', axis=1, inplace=True)
+            if not all_cols:
+                df.drop(cols_to_drop, axis=1, inplace=True, errors='ignore')
+            return df
 
-        for children in res['ChildDevices']:
-            for child in children:
-                self.device_serials[child.get('DeviceId')] = child.get('SerialNumber')
-        return res
-
-    def get_device_data(self, serial_number, start_date=None, finish_date=datetime.datetime.now(), take_count=1000,
-                        all_cols=False):
         try:
             device_id = self.device_ids[serial_number]
         except AttributeError:
@@ -67,52 +101,57 @@ class CityAirRequest:
         filter_ = {'Take': take_count, 'DeviceId': device_id}
         if start_date:
             filter_['FilterType'] = 1
-            filter_['TimeBegin'] = self.to_date(start_date)
-            filter_['TimeEnd'] = self.to_date(finish_date)
+            filter_['TimeBegin'] = to_date(start_date)
+            filter_['TimeEnd'] = to_date(finish_date)
         else:
             filter_['FilterType'] = 3
             filter_['Skip'] = 0
-        packets = self.make_request("DevicesApi2/GetPackets", Filter=filter_)['Packets']
+        packets = self._make_request("DevicesApi2/GetPackets", 'Packets', Filter=filter_)
         df = pd.DataFrame.from_records(packets)
-        df.drop(['DataJson', 'PacketId'], 1, inplace=True)
-        if not all_cols:
-            df.drop(['FlagBatLow', 'FlagPs220', 'RecvDate', 'GeoInfo'], axis=1, inplace=True, errors='ignore')
-        else:
-            # unpacking columns that are dictionaries
-            columns_to_unpack = ['GeoInfo']
-            for col in columns_to_unpack:
-                df = df.assign(**df[col].apply(pd.Series)).drop(col, 1)
-                # unpacking columns that are list of dict (['Data'])
+        df.drop(['DataJson', 'PacketId'], 1, inplace=True, errors='ignore')
+
+        columns_to_unpack = ['GeoInfo']
+        for col in columns_to_unpack:
+            df = df.assign(**df[col].apply(pd.Series)).drop(col, 1)
+            # unpacking columns that are list of dict (['Data'])
         records = []
         for packets in df['Data']:
             records.append(dict(zip(
-                [f"{self.value_types[packet['VT']]} {self.device_serials[packet['D']]}" for packet in packets],
+                [f"value {packet['D']} {packet['VT']}" for packet in packets],
                 [packet['V'] for packet in packets])))
         df = df.assign(**pd.DataFrame.from_records(records))
-        # now renaming columns if there is only one valuetype from this device. else leaving serial as suffix
-        param_names = dict(zip([col.split(' ')[0] for col in df], [set() for _ in df]))
-        for col in df:
-            param_names[col.split(' ')[0]].add(col)
-        for param in param_names:
-            if len(param_names[param]) == 1:
-                df.rename({param_names[param].pop(): param}, inplace=True, axis=1)
-        # dropping useless and empty columns and renaming to proper names
-        df.drop(['Data'], 1, inplace=True)
         for date_col in list(filter(lambda col: col.endswith('Date'), df.columns)):
-            df[date_col] = df[date_col].apply(pd.to_datetime)
-        df.rename(RIGHT_PARAMS_NAMES, inplace=True, axis=1)
+            df[date_col] = df[date_col].apply(to_date)
+        df.index = df['SendDate'].rename('Date')
+        df.drop('SendDate', axis=1, inplace=True)
 
-        df.set_index('Date', inplace=True)
-        df.dropna(how='all', axis=1, inplace=True)
-        return df
-
-    @staticmethod
-    def to_date(date_string):
-        if isinstance(date_string, datetime.datetime):
-            return date_string.isoformat()
+        values_cols = list(filter(lambda col: col.startswith('value'), df.columns))
+        if separate_device_data:
+            res = dict()
+            for col in values_cols:
+                _, device_id, value_id = col.split(' ')
+                serial = self.device_serials[int(device_id)]
+                value_name = self.value_types[int(value_id)]
+                series_to_append = df[col].rename(value_name)
+                try:
+                    res[serial] = pd.concat([res[serial], series_to_append], axis=1)
+                except KeyError:
+                    res[serial] = series_to_append.to_frame()
+            res[serial_number] = pd.concat([df.drop(values_cols + ['Data'], axis=1), res[serial_number]], axis=1)
+            for device in res:
+                res[device] = finilize_df(res[device])
+            return res
         else:
-            try:
-                return pd.to_datetime(date_string, dayfirst=True).isoformat()
-            except Exception:
-                raise Exception("Wrong date format")
+            value_types_count = Counter(list(
+                map(lambda s: (s.split(' ')[-1]), values_cols)))
+            for col in list(filter(lambda col: col.startswith('value'), df.columns)):
+                _, device_id, value_id = col.split(' ')
+                serial = self.device_serials[int(device_id)]
+                value_name = self.value_types[int(value_id)]
+                if value_types_count[value_id] > 1:
+                    proper_col_name = f"{value_name} [{serial}]"
+                else:
+                    proper_col_name = f"{value_name}"
+                df.rename(columns={col: proper_col_name}, inplace=True)
+            return finilize_df(df.drop(['Data'], axis=1))
 
