@@ -1,28 +1,26 @@
-import requests
 import pandas as pd
-from pandas.io.json import json_normalize
 import datetime
-import time
-import json
-from collections.abc import Iterable
 from collections import Counter
-from .utils import to_date
+from .utils import to_date, timeit, debugit
 from .exceptions import *
 
 RIGHT_PARAMS_NAMES = {'FlagBatLow': 'BatLow', 'FlagPs220': '220', 'RecvDate': 'RecieveDate',
                       'SendDate': 'Date', 'Temperature': 'T',
                       'Humidity': 'RH', 'Pressure': 'P'}
-DEFAULT_HOST = "http://185.171.100.156:49106"
+DEFAULT_HOST = "https://develop.cityair.io/backend-api/request-dev-pg.php?map="
 
 
 class CityAirRequest:
     def __init__(self, user, psw, **kwargs):
-        self.host_url = kwargs.get('main_url', DEFAULT_HOST)
+        self.host_url = kwargs.get('host_url', DEFAULT_HOST)
         self.timeout = kwargs.get('timeout', 100)
-        self.token = self._make_request(f"Auth/Init", 'Token', User=user, Pwd=psw)
+        self.user = user
+        self.psw = psw
 
+    @debugit
+    @timeit
     def _make_request(self, method_url, *keys, **kwargs):
-        body = {"Token": getattr(self, 'token', None), **kwargs}
+        body = {"User": getattr(self, 'user'), "Pwd": getattr(self, 'psw'), **kwargs}
         url = f"{self.host_url}/{method_url}"
         response = requests.post(url, json=body, timeout=self.timeout)
         if response.json()['IsError']:
@@ -38,8 +36,10 @@ class CityAirRequest:
         else:
             return [response_data[key] for key in keys]
 
-    def get_devices(self, format='list', include_offline=True, include_children=False):
-        value_types_data, devices_data = self._make_request(f"DevicesApi2/GetDevices", "PacketsValueTypes", "Devices")
+    @timeit
+    def get_devices(self, format='list', include_offline=True, include_children=False, **kwargs):
+        value_types_data, devices_data = self._make_request(f"DevicesApi2/GetDevices", "PacketsValueTypes", "Devices",
+                                                            **kwargs)
         value_types_data = pd.DataFrame.from_records(value_types_data)
         self.value_types = dict(zip(value_types_data['ValueType'], value_types_data['TypeName']))
         df = pd.DataFrame.from_records(devices_data)
@@ -71,6 +71,7 @@ class CityAirRequest:
                 line = df.iloc[i]
                 for device in line['ChildDevices']:
                     df = df.append(device, ignore_index=True)
+        df.index = df['SerialNumber']
         if format == 'list':
             return df.index
         if format == 'raw':
@@ -79,10 +80,11 @@ class CityAirRequest:
             raise Exception(
                 f"Unknown type of fromat arqument: {format}. Available formats are: list, raw, dict")
 
+    @timeit
     def get_device_data(self, serial_number, start_date=None,
                         finish_date=datetime.datetime.now(),
                         take_count=1000, all_cols=False,
-                        separate_device_data=True):
+                        separate_device_data=False, **kwargs):
         def finilize_df(df, all_cols=all_cols):
             cols_to_drop = ['220', 'BatLow', 'RecieveDate', 'GeoInfo', 'Date', 'SendDate', 'Latitude', 'Longitude']
             df.rename(RIGHT_PARAMS_NAMES, inplace=True, axis=1)
@@ -97,16 +99,16 @@ class CityAirRequest:
             self.get_devices()
             device_id = self.device_ids[serial_number]
         except KeyError:
-            raise Exception(f"You don't have permission to the device with serial {serial_number}")
+            raise NoAccessException(f"You don't have permission to the device with serial {serial_number}")
         filter_ = {'Take': take_count, 'DeviceId': device_id}
         if start_date:
             filter_['FilterType'] = 1
-            filter_['TimeBegin'] = to_date(start_date)
-            filter_['TimeEnd'] = to_date(finish_date)
+            filter_['TimeBegin'] = to_date(start_date).isoformat()
+            filter_['TimeEnd'] = to_date(finish_date).isoformat()
         else:
             filter_['FilterType'] = 3
             filter_['Skip'] = 0
-        packets = self._make_request("DevicesApi2/GetPackets", 'Packets', Filter=filter_)
+        packets = self._make_request("DevicesApi2/GetPackets", 'Packets', Filter=filter_, **kwargs)
         df = pd.DataFrame.from_records(packets)
         df.drop(['DataJson', 'PacketId'], 1, inplace=True, errors='ignore')
 
@@ -137,7 +139,10 @@ class CityAirRequest:
                     res[serial] = pd.concat([res[serial], series_to_append], axis=1)
                 except KeyError:
                     res[serial] = series_to_append.to_frame()
-            res[serial_number] = pd.concat([df.drop(values_cols + ['Data'], axis=1), res[serial_number]], axis=1)
+            try:
+                res[serial_number] = pd.concat([df.drop(values_cols + ['Data'], axis=1), res[serial_number]], axis=1)
+            except KeyError:
+                res[serial_number] = df.drop(values_cols + ['Data'], axis=1)
             for device in res:
                 res[device] = finilize_df(res[device])
             return res
@@ -154,4 +159,3 @@ class CityAirRequest:
                     proper_col_name = f"{value_name}"
                 df.rename(columns={col: proper_col_name}, inplace=True)
             return finilize_df(df.drop(['Data'], axis=1))
-
