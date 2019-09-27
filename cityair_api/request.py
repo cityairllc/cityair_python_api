@@ -11,7 +11,20 @@ DEFAULT_HOST = "https://develop.cityair.io/backend-api/request-dev-pg.php?map="
 
 
 class CityAirRequest:
+    """
+    object for accessing data of CityAir.io project
+    -------"""
     def __init__(self, user, psw, **kwargs):
+        """
+        Parameters
+        ----------
+        user, psw :  str
+            authentication information
+        host_url: str, default https://develop.cityair.io/backend-api/request-dev-pg.php?map=
+            url of the CityAir API, you may want to change it in case using a StandAloneServer
+        timeout: int, default 100
+            timeout for the server request
+        -------"""
         self.host_url = kwargs.get('host_url', DEFAULT_HOST)
         self.timeout = kwargs.get('timeout', 100)
         self.user = user
@@ -20,6 +33,18 @@ class CityAirRequest:
     @debugit
     @timeit
     def _make_request(self, method_url, *keys, **kwargs):
+        """
+        Making request with the prepared data
+
+        Parameters
+        ----------
+        method_url :  str
+            url of the specified method
+        *keys: [str]
+            keys, which data to return from the raw server response
+        **kwargs : dict
+            some additional args to pass to the request
+        -------"""
         body = {"User": getattr(self, 'user'), "Pwd": getattr(self, 'psw'), **kwargs}
         url = f"{self.host_url}/{method_url}"
         response = requests.post(url, json=body, timeout=self.timeout)
@@ -38,6 +63,23 @@ class CityAirRequest:
 
     @timeit
     def get_devices(self, format='list', include_offline=True, include_children=False, **kwargs):
+        """
+        Provides devices information in various formats
+
+        Parameters
+        ----------
+        format :  {'list', 'raw', 'dicts}, default 'list'
+            in case of 'raw' - returns dataframe including all info got from server
+            in case of 'dicts' - returns list of dictionaries, each including keys 'serial_number' and 'name'
+        include_offline: bool, default True
+            whether to include offline devices to the output
+        include_children : bool, default False
+            whether to include info of child devices to the output
+        timeit: bool, default False
+            whether to print how long it took to gather and process data
+        debugit: bool, default False
+            whether to print raw request and response data
+        -------"""
         value_types_data, devices_data = self._make_request(f"DevicesApi2/GetDevices", "PacketsValueTypes", "Devices",
                                                             **kwargs)
         value_types_data = pd.DataFrame.from_records(value_types_data)
@@ -46,7 +88,7 @@ class CityAirRequest:
         df.index = df['SerialNumber']
         if not include_offline:
             df = df[~ df['IsOffline']]
-        if format == 'dict':
+        if format == 'dicts':
             res = []
             for serial in df.index:
                 info = df.loc[serial]
@@ -77,14 +119,37 @@ class CityAirRequest:
         if format == 'raw':
             return df
         else:
-            raise Exception(
-                f"Unknown type of fromat arqument: {format}. Available formats are: list, raw, dict")
+            raise ValueError(
+                f"Unknown type of fromat arqument: {format}. Available formats are: list, raw, dicts")
 
     @timeit
     def get_device_data(self, serial_number, start_date=None,
                         finish_date=datetime.datetime.now(),
                         take_count=1000, all_cols=False,
                         separate_device_data=False, **kwargs):
+        """
+        Provides data from the selected device
+
+        Parameters
+        ----------
+        serial_number : str
+            serial_number of the device
+        start_date, finish_date: str of datetime.datetime
+            dates on which data is being queried
+        take_count : int, default 1000
+            count of packets which is requested from the server
+        all_cols: bool, default False
+            whether to keep or drop columns which are not directly related to air
+             quality data (i.e. battery status, ps 220, recieve date)
+        separate_device_data: bool, default False
+            whether to separate dfs for individual devices.
+            if False - returns one pd.DataFrame, where value_name in concatenated with
+                serial_number of the device if there more than one device
+                measuring one value type
+            if True - returns dictionary, where keys are serial_number of
+                the device and value is pd.DataFrame containing all data of each device
+        -------"""
+
         def finilize_df(df, all_cols=all_cols):
             cols_to_drop = ['220', 'BatLow', 'RecieveDate', 'GeoInfo', 'Date', 'SendDate', 'Latitude', 'Longitude']
             df.rename(RIGHT_PARAMS_NAMES, inplace=True, axis=1)
@@ -99,7 +164,7 @@ class CityAirRequest:
             self.get_devices()
             device_id = self.device_ids[serial_number]
         except KeyError:
-            raise NoAccessException(f"You don't have permission to the device with serial {serial_number}")
+            raise NoAccessException(serial_number)
         filter_ = {'Take': take_count, 'DeviceId': device_id}
         if start_date:
             filter_['FilterType'] = 1

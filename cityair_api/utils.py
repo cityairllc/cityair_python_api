@@ -12,6 +12,10 @@ def to_date(date_string):
 
 
 def timeit(method):
+    """
+    Decorator to print time elapsed
+
+    """
     def timed(*args, **kwargs):
         timeit = kwargs.get('timeit', False)
         ts = time.time()
@@ -25,6 +29,10 @@ def timeit(method):
 
 
 def debugit(method):
+    """
+    Decorator to print raw response and request data
+
+    """
     def print_request_response(*args, **kwargs):
         obj = args[0]
         body = {"User": getattr(obj, 'user'), "Pwd": getattr(obj, 'psw'), **kwargs}
