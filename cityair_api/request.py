@@ -4,7 +4,7 @@ from collections import Counter
 from .utils import to_date, timeit, debugit
 from .exceptions import *
 
-RIGHT_PARAMS_NAMES = {'FlagBatLow': 'BatLow', 'FlagPs220': '220', 'RecvDate': 'RecieveDate',
+RIGHT_PARAMS_NAMES = {'FlagBatLow': 'BatLow', 'FlagPs220': '220', 'RecvDate': 'ReceiveDate',
                       'SendDate': 'Date', 'Temperature': 'T',
                       'Humidity': 'RH', 'Pressure': 'P'}
 DEFAULT_HOST = "https://develop.cityair.io/backend-api/request-dev-pg.php?map="
@@ -151,7 +151,7 @@ class CityAirRequest:
         -------"""
 
         def finilize_df(df, all_cols=all_cols):
-            cols_to_drop = ['220', 'BatLow', 'RecieveDate', 'GeoInfo', 'Date', 'SendDate', 'Latitude', 'Longitude']
+            cols_to_drop = ['220', 'BatLow', 'ReceiveDate', 'GeoInfo', 'Date', 'SendDate', 'Latitude', 'Longitude']
             df.rename(RIGHT_PARAMS_NAMES, inplace=True, axis=1)
             df.dropna(how='all', axis=1, inplace=True)
             if not all_cols:
