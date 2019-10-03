@@ -8,7 +8,7 @@ RIGHT_PARAMS_NAMES = {'FlagBatLow': 'BatLow', 'FlagPs220': '220', 'RecvDate': 'R
                       'SendDate': 'Date', 'Temperature': 'T',
                       'Humidity': 'RH', 'Pressure': 'P'}
 DEFAULT_HOST = "https://develop.cityair.io/backend-api/request-dev-pg.php?map="
-
+USELESS_COLS = ['220', 'BatLow', 'RecieveDate', 'GeoInfo', 'Date', 'SendDate', 'Latitude', 'Longitude']
 
 class CityAirRequest:
     """
@@ -134,7 +134,7 @@ class CityAirRequest:
         ----------
         serial_number : str
             serial_number of the device
-        start_date, finish_date: str of datetime.datetime
+        start_date, finish_date: str or datetime.datetime
             dates on which data is being queried
         take_count : int, default 1000
             count of packets which is requested from the server
@@ -143,15 +143,15 @@ class CityAirRequest:
              quality data (i.e. battery status, ps 220, recieve date)
         separate_device_data: bool, default False
             whether to separate dfs for individual devices.
-            if False - returns one pd.DataFrame, where value_name in concatenated with
-                serial_number of the device if there more than one device
-                measuring one value type
+            if False - returns one pd.DataFrame, where value_name is concatenated with
+                serial_number of the device if there is more than one device
+                measuring values of a type
             if True - returns dictionary, where keys are serial_number of
                 the device and value is pd.DataFrame containing all data of each device
         -------"""
 
         def finilize_df(df, all_cols=all_cols):
-            cols_to_drop = ['220', 'BatLow', 'RecieveDate', 'GeoInfo', 'Date', 'SendDate', 'Latitude', 'Longitude']
+            cols_to_drop = [USELESS_COLS]
             df.rename(RIGHT_PARAMS_NAMES, inplace=True, axis=1)
             df.dropna(how='all', axis=1, inplace=True)
             if not all_cols:
