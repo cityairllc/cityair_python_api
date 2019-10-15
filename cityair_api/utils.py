@@ -13,6 +13,8 @@ docstrings refactor
 
 """
 
+
+
 RIGHT_PARAMS_NAMES = {'FlagPs220': '220', 'RecvDate': 'RecieveDate',
                       'SendDate': 'date', 'Temperature': 'T',
                       'Humidity': 'RH', 'Pressure': 'P',
@@ -27,13 +29,13 @@ RIGHT_PARAMS_NAMES = {'FlagPs220': '220', 'RecvDate': 'RecieveDate',
                       'Name': 'name', 'PublishName': 'publish_name', 'PublishNameRu': 'publish_name_ru',
                       'ManualDeviceLinks': 'devices_manual', 'DeviceLink': 'devices_auto', 'GmtOffset': 'gmt_offset',
                       'DotItem': 'coordinates',
-                      'Latitude': 'latitude', 'Longitude': 'longitude', 'LocationId': 'location', 'GeoInfo':'coordinates'
+                      'Latitude': 'latitude', 'Longitude': 'longitude', 'LocationId': 'location', 'GeoInfo':'coordinates', 'DataAqi': 'AQI'
                       }
 USELESS_COLS = ['220', 'BatLow', 'RecieveDate', 'GeoInfo', 'Date', 'SendDate', 'latitude', 'longitude',
                 'description',
                 'FlagBatLowHasFailed', 'FlagPs220HasFailed', 'IsNotSaveData',
                 'ParentDeviceId', 'SourceType', 'tags','DataProviderId',
- 'IsDeleted', 'IsManualParamLinks', 'IsStartInterval1H', 'ManualPacketParamLinks']
+ 'IsDeleted', 'IsManualParamLinks', 'IsStartInterval1H', 'ManualPacketParamLinks', 'PacketId','Timestamp']
 
 
 def unpack_cols(df, *cols_to_unpack):
@@ -76,7 +78,7 @@ def to_date(date_string):
 
 
 def prep_df(df: pd.DataFrame, right_param_names: dict = RIGHT_PARAMS_NAMES, cols_to_drop: List[str] = USELESS_COLS,
-            dicts_cols: List[str] = [], dropna=True):
+            dicts_cols: List[str] = [], dropna=True, index_col: str = None):
     res = df.rename(right_param_names, axis=1)
     res.drop(cols_to_drop, axis=1, inplace=True, errors='ignore')
     for col in dicts_cols:
@@ -91,6 +93,8 @@ def prep_df(df: pd.DataFrame, right_param_names: dict = RIGHT_PARAMS_NAMES, cols
         res.drop('is_offline', axis=1, inplace=True)
     except KeyError:
         pass
+    if index_col:
+        res.set_index(index_col, inplace=True)
     return res
 
 

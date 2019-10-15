@@ -2,10 +2,21 @@ import pandas as pd
 import datetime
 from collections import Counter
 import requests
-from utils import to_date, timeit, debugit, prep_dicts, prep_df, unpack_cols
-from exceptions import EmptyDataException, NoAccessException, ServerException, CityAirException
+from cityair_api.utils import to_date, timeit, debugit, prep_dicts, prep_df, unpack_cols
+from cityair_api.exceptions import EmptyDataException, NoAccessException, ServerException, CityAirException
 import json
 from sys import getsizeof
+from collections import OrderedDict
+from enum import Enum
+
+
+class Period(Enum):
+    FIVE_MINS = 1
+    TWENTY_MINS = 2
+    HOUR = 3
+    DAY = 4
+
+
 """
 TODO
 
@@ -13,7 +24,7 @@ docstrings refactor: choose style, added raiseing exception
 
 """
 
-DEFAULT_HOST = "https://develop.cityair.io/backend-api/request-dev-pg.php?map="
+DEFAULT_HOST = "https://cityair.io/backend-api/request-v2.php?map=/"
 
 
 class CityAirRequest:
@@ -21,7 +32,7 @@ class CityAirRequest:
         object for accessing data of CityAir.io project
         Parameters
         ----------
-        user, psw :  str
+        user, psw:  str
             authentication information
         host_url: str, default https://develop.cityair.io/backend-api/request-dev-pg.php?map=
             url of the CityAir API, you may want to change it in case using a StandAloneServer
@@ -35,6 +46,9 @@ class CityAirRequest:
         self.timeout = kwargs.get('timeout', 100)
         self.user = user
         self.psw = psw
+        value_types_data = self._make_request(f"DevicesApi2/GetDevices", "PacketsValueTypes")
+        self.value_types = dict(zip([(data.get('ValueType')) for data in value_types_data],
+                                    [data.get('TypeName') for data in value_types_data]))
 
     @debugit
     @timeit
@@ -86,10 +100,8 @@ class CityAirRequest:
         debugit: bool, default False
             whether to print raw request and response data
         -------"""
-        value_types_data, devices_data = self._make_request(f"DevicesApi2/GetDevices", "PacketsValueTypes", "Devices",
-                                                            **kwargs)
-        value_types_data = pd.DataFrame.from_records(value_types_data)
-        self.value_types = dict(zip(value_types_data['ValueType'], value_types_data['TypeName']))
+        devices_data = self._make_request(f"DevicesApi2/GetDevices", "Devices",
+                                          **kwargs)
         df = pd.DataFrame.from_records(devices_data)
         if format == 'raw':
             return df
@@ -113,8 +125,8 @@ class CityAirRequest:
                 info = dict(df.loc[serial].dropna())
                 main_params = ['serial_number', 'name', 'children', 'check_infos']
                 single_dict = dict(zip(main_params, [info.pop(param, None) for param in main_params]))
-                single_dict['misc'] = sorted(info.items(), key=lambda item: getsizeof(item[1]))
-                res.append(sorted(single_dict.items(), key=lambda item: getsizeof(item[1])))
+                single_dict['misc'] = OrderedDict(sorted(info.items(), key=lambda item: getsizeof(item[1])))
+                res.append(OrderedDict(sorted(single_dict.items(), key=lambda item: getsizeof(item[1]))))
             return res
         elif format == 'list':
             return list(df.index)
@@ -125,10 +137,10 @@ class CityAirRequest:
                 f"Unknown type of format argument: {format}. Available formats are: list, raw, dicts, df")
 
     @timeit
-    def get_device_data(self, serial_number, start_date=None,
+    def get_device_data(self, serial_number: str, start_date=None,
                         finish_date=datetime.datetime.now(),
-                        take_count=1000, all_cols=False,
-                        separate_device_data=False, **kwargs):
+                        take_count: int = 1000, all_cols: bool = False,
+                        separate_device_data: bool = False, **kwargs):
         """
         Provides data from the selected device
 
@@ -150,6 +162,10 @@ class CityAirRequest:
                 measuring values of a type
             if True - returns dictionary, where keys are serial_number of
                 the device and value is pd.DataFrame containing all data of each device
+        timeit: bool, default False
+            whether to print how long it took to gather and process data
+        debugit: bool, default False
+            whether to print raw request and response data
         -------"""
         try:
             device_id = self.device_ids[serial_number]
@@ -171,7 +187,6 @@ class CityAirRequest:
         df = pd.DataFrame.from_records(packets)
         df.drop(['Data', 'PacketId'], 1, inplace=True, errors='ignore')
         df = unpack_cols(df, 'coordinates')
-        # unpacking columns that are list of dict (['Data'])
         records = []
         for packets in df['DataJson']:
             packets = json.loads(packets)
@@ -217,3 +232,101 @@ class CityAirRequest:
             df = prep_df(df.drop(['DataJson'], axis=1))
             df.set_index('date', inplace=True, drop=True)
             return df
+
+    def get_stations(self, format='list', include_offline=True, **kwargs):
+        """
+        Provides devices information in various formats
+
+        Parameters
+        ----------
+        format :  {'list', 'raw', 'dicts}, default 'list'
+           in case of 'raw' - returns dataframe including all info got from server
+           in case of 'dicts' - returns list of dictionaries, each including keys 'serial_number' and 'name'
+        include_offline: bool, default True
+           whether to include offline devices to the output
+        include_children : bool, default False
+           whether to include info of child devices to the output
+        timeit: bool, default False
+           whether to print how long it took to gather and process data
+        debugit: bool, default False
+           whether to print raw request and response data
+        -------"""
+        locations_data, stations_data, devices_data = self._make_request(f"MoApi2/GetMoItems", "Locations",
+                                                                         "MoItems", "Devices"
+                                                                         , **kwargs)
+        locations = dict(zip([(data.get('LocationId')) for data in locations_data],
+                             [data.get('Name') for data in locations_data]))
+        devices = dict(zip([data.get('DeviceId') for data in devices_data],
+                           [data.get('SerialNumber') for data in devices_data]))
+        df = prep_df(pd.DataFrame.from_records(stations_data))
+        if format == 'raw':
+            return df
+        df.set_index('id', inplace=True)
+        df = unpack_cols(df, 'coordinates')
+        df['devices'] = df['devices_auto'].apply(lambda link: [link.get('DeviceId', None)] if link else []) + df[
+            'devices_manual'].apply(lambda links: [link.get('DeviceId', None) for link in links] if links else [])
+        df.drop(['devices_auto', 'devices_manual'], axis=1, inplace=True)
+        df['devices'] = df['devices'].apply(lambda ids: set([devices.get(id_, None) for id_ in ids]))
+        df['location'] = df['location'].apply(lambda id_: locations.get(id_, None) if id_ else None)
+        if not include_offline:
+            df = df[df['is_online']]
+        if format == 'dicts':
+            res = []
+            for index, row in df.iterrows():
+                row = dict(row)
+                res.append(OrderedDict(
+                    [(df.index.name, index),
+                     ('name', row.get('publish_name') or row.get('name'))]
+                    +
+                    [(param, row.get(param)) for param in ('location', 'gmt_offset', 'devices')]
+                ))
+            return res
+        elif format == 'list':
+            return list(df.index)
+        elif format == 'df':
+            return df
+        else:
+            raise ValueError(
+                f"Unknown type of format argument: {format}. Available formats are: list, raw, dicts, df")
+
+    def get_station_data(self, station_id, start_date=None,
+                         finish_date=datetime.datetime.now(),
+                         take_count: int = 1000, period: Period = Period.TWENTY_MINS, **kwargs):
+        """
+        Provides data from the selected station
+
+        Parameters
+        ----------
+        station_id : id
+            id of the station
+        start_date, finish_date: str or datetime.datetime
+            dates on which data is being queried
+        take_count : int, default 1000
+            count of packets which is requested from the server
+        period: Period (enum)
+            period could be five mins, twenty mins, hour, dat
+        timeit: bool, default False
+            whether to print how long it took to gather and process data
+        debugit: bool, default False
+            whether to print raw request and response data
+        -------"""
+        filter_ = {'TakeCount': take_count,
+                   'MoId': station_id,
+                   'IntervalType': period.value}
+        if start_date:
+            filter_['FilterType'] = 1
+            filter_['TimeBegin'] = to_date(start_date).isoformat()
+            filter_['TimeEnd'] = to_date(finish_date).isoformat()
+        else:
+            filter_['FilterType'] = 3
+            filter_['SkipFromLast'] = 0
+        packets = self._make_request("MoApi2/GetMoPackets", 'Packets', Filter=filter_, **kwargs)
+        df = pd.DataFrame.from_records(packets)
+        records = []
+        for packets in df['DataJson']:
+            packets = json.loads(packets)
+            records.append(dict(zip([self.value_types.get(packet['Id'], 'undefined') for packet in packets],
+                                    [packet['Sum'] / packet['Cnt'] for packet in packets])))
+        df = df.assign(**pd.DataFrame.from_records(records)).head()
+        df = prep_df(df.drop(['DataJson'], axis=1), index_col='date')
+        return df
