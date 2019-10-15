@@ -1,21 +1,24 @@
 import pandas as pd
 import datetime
 from collections import Counter
-from .utils import to_date, timeit, debugit
-from .exceptions import *
+import requests
+from utils import to_date, timeit, debugit, prep_dicts, prep_df, unpack_cols
+from exceptions import EmptyDataException, NoAccessException, ServerException, CityAirException
+import json
+from sys import getsizeof
+"""
+TODO
 
-RIGHT_PARAMS_NAMES = {'FlagBatLow': 'BatLow', 'FlagPs220': '220', 'RecvDate': 'RecieveDate',
-                      'SendDate': 'Date', 'Temperature': 'T',
-                      'Humidity': 'RH', 'Pressure': 'P'}
+docstrings refactor: choose style, added raiseing exception
+
+"""
+
 DEFAULT_HOST = "https://develop.cityair.io/backend-api/request-dev-pg.php?map="
-USELESS_COLS = ['220', 'BatLow', 'RecieveDate', 'GeoInfo', 'Date', 'SendDate', 'Latitude', 'Longitude']
+
 
 class CityAirRequest:
     """
-    object for accessing data of CityAir.io project
-    -------"""
-    def __init__(self, user, psw, **kwargs):
-        """
+        object for accessing data of CityAir.io project
         Parameters
         ----------
         user, psw :  str
@@ -24,7 +27,10 @@ class CityAirRequest:
             url of the CityAir API, you may want to change it in case using a StandAloneServer
         timeout: int, default 100
             timeout for the server request
-        -------"""
+    -------"""
+
+    def __init__(self, user, psw, **kwargs):
+
         self.host_url = kwargs.get('host_url', DEFAULT_HOST)
         self.timeout = kwargs.get('timeout', 100)
         self.user = user
@@ -85,42 +91,38 @@ class CityAirRequest:
         value_types_data = pd.DataFrame.from_records(value_types_data)
         self.value_types = dict(zip(value_types_data['ValueType'], value_types_data['TypeName']))
         df = pd.DataFrame.from_records(devices_data)
-        df.index = df['SerialNumber']
+        if format == 'raw':
+            return df
+        df = prep_df(df, dicts_cols=['children'])
+
         if not include_offline:
-            df = df[~ df['IsOffline']]
+            df = df[df['is_online']]
+        df_with_children = df.copy()
+        for children in df['children']:
+            for child in children:
+                df_with_children = df_with_children.append(child, ignore_index=True)
+        self.device_serials = dict(zip(df_with_children['id'], df_with_children['serial_number']))
+        self.device_ids = dict(zip(df_with_children['serial_number'], df_with_children['id']))
+        if include_children:
+            df = df_with_children
+        df.set_index('serial_number', inplace=True, drop=False)
+
         if format == 'dicts':
             res = []
             for serial in df.index:
-                info = df.loc[serial]
-                res.append({'serial_number': info['SerialNumber'],
-                            'name': info['DeviceName']})
-                if include_children:
-                    res[-1]['children'] = []
-                    for child in info['ChildDevices']:
-                        res[-1]['children'].append({'serial_number': child['SerialNumber'],
-                                                    'name': child['DeviceName']})
+                info = dict(df.loc[serial].dropna())
+                main_params = ['serial_number', 'name', 'children', 'check_infos']
+                single_dict = dict(zip(main_params, [info.pop(param, None) for param in main_params]))
+                single_dict['misc'] = sorted(info.items(), key=lambda item: getsizeof(item[1]))
+                res.append(sorted(single_dict.items(), key=lambda item: getsizeof(item[1])))
             return res
-        # saving dict to idntify device by id
-        self.device_serials = dict(zip(df['DeviceId'], df['SerialNumber']))
-        self.device_ids = dict(zip(df['SerialNumber'], df['DeviceId']))
-        for children in df['ChildDevices']:
-            if children:
-                for child in children:
-                    self.device_serials[child.get('DeviceId')] = child.get('SerialNumber')
-
-        if include_children:
-            for i in range(df.shape[0]):
-                line = df.iloc[i]
-                for device in line['ChildDevices']:
-                    df = df.append(device, ignore_index=True)
-        df.index = df['SerialNumber']
-        if format == 'list':
-            return df.index
-        if format == 'raw':
+        elif format == 'list':
+            return list(df.index)
+        elif format == 'df':
             return df
         else:
             raise ValueError(
-                f"Unknown type of fromat arqument: {format}. Available formats are: list, raw, dicts")
+                f"Unknown type of format argument: {format}. Available formats are: list, raw, dicts, df")
 
     @timeit
     def get_device_data(self, serial_number, start_date=None,
@@ -149,15 +151,6 @@ class CityAirRequest:
             if True - returns dictionary, where keys are serial_number of
                 the device and value is pd.DataFrame containing all data of each device
         -------"""
-
-        def finilize_df(df, all_cols=all_cols):
-            cols_to_drop = [USELESS_COLS]
-            df.rename(RIGHT_PARAMS_NAMES, inplace=True, axis=1)
-            df.dropna(how='all', axis=1, inplace=True)
-            if not all_cols:
-                df.drop(cols_to_drop, axis=1, inplace=True, errors='ignore')
-            return df
-
         try:
             device_id = self.device_ids[serial_number]
         except AttributeError:
@@ -165,7 +158,8 @@ class CityAirRequest:
             device_id = self.device_ids[serial_number]
         except KeyError:
             raise NoAccessException(serial_number)
-        filter_ = {'Take': take_count, 'DeviceId': device_id}
+        filter_ = {'Take': take_count,
+                   'DeviceId': device_id}
         if start_date:
             filter_['FilterType'] = 1
             filter_['TimeBegin'] = to_date(start_date).isoformat()
@@ -175,22 +169,16 @@ class CityAirRequest:
             filter_['Skip'] = 0
         packets = self._make_request("DevicesApi2/GetPackets", 'Packets', Filter=filter_, **kwargs)
         df = pd.DataFrame.from_records(packets)
-        df.drop(['DataJson', 'PacketId'], 1, inplace=True, errors='ignore')
-
-        columns_to_unpack = ['GeoInfo']
-        for col in columns_to_unpack:
-            df = df.assign(**df[col].apply(pd.Series)).drop(col, 1)
-            # unpacking columns that are list of dict (['Data'])
+        df.drop(['Data', 'PacketId'], 1, inplace=True, errors='ignore')
+        df = unpack_cols(df, 'coordinates')
+        # unpacking columns that are list of dict (['Data'])
         records = []
-        for packets in df['Data']:
+        for packets in df['DataJson']:
+            packets = json.loads(packets)
             records.append(dict(zip(
                 [f"value {packet['D']} {packet['VT']}" for packet in packets],
                 [packet['V'] for packet in packets])))
         df = df.assign(**pd.DataFrame.from_records(records))
-        for date_col in list(filter(lambda col: col.endswith('Date'), df.columns)):
-            df[date_col] = df[date_col].apply(to_date)
-        df.index = df['SendDate'].rename('Date')
-        df.drop('SendDate', axis=1, inplace=True)
 
         values_cols = list(filter(lambda col: col.startswith('value'), df.columns))
         if separate_device_data:
@@ -203,13 +191,16 @@ class CityAirRequest:
                 try:
                     res[serial] = pd.concat([res[serial], series_to_append], axis=1)
                 except KeyError:
-                    res[serial] = series_to_append.to_frame()
+                    res[serial] = pd.concat([df['SendDate'], series_to_append], axis=1)
             try:
-                res[serial_number] = pd.concat([df.drop(values_cols + ['Data'], axis=1), res[serial_number]], axis=1)
+                res[serial_number] = pd.concat(
+                    [df.drop(values_cols + ['DataJson', 'SendDate'], axis=1), res[serial_number]], axis=1)
             except KeyError:
-                res[serial_number] = df.drop(values_cols + ['Data'], axis=1)
+                res[serial_number] = df.drop(values_cols + ['DataJson'], axis=1)
             for device in res:
-                res[device] = finilize_df(res[device])
+                res[device] = prep_df(res[device])
+                print(res[device].columns)
+                res[device].set_index('date', inplace=True, drop=True)
             return res
         else:
             value_types_count = Counter(list(
@@ -223,4 +214,6 @@ class CityAirRequest:
                 else:
                     proper_col_name = f"{value_name}"
                 df.rename(columns={col: proper_col_name}, inplace=True)
-            return finilize_df(df.drop(['Data'], axis=1))
+            df = prep_df(df.drop(['DataJson'], axis=1))
+            df.set_index('date', inplace=True, drop=True)
+            return df
