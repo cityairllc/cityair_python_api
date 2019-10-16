@@ -6,8 +6,8 @@ import json
 from sys import getsizeof
 from collections import OrderedDict
 from enum import Enum
-from utils import to_date, timeit, debugit, prep_dicts, prep_df, USELESS_COLS
-from exceptions import EmptyDataException, NoAccessException, ServerException, CityAirException
+from cityair_api.utils import to_date, timeit, debugit, prep_dicts, prep_df, USELESS_COLS
+from cityair_api.exceptions import EmptyDataException, NoAccessException, ServerException, CityAirException
 
 
 class Period(Enum):
@@ -339,6 +339,6 @@ class CityAirRequest:
             packets = json.loads(packets)
             records.append(dict(zip([self.value_types.get(packet['Id'], 'undefined') for packet in packets],
                                     [packet['Sum'] / packet['Cnt'] for packet in packets])))
-        df = df.assign(**pd.DataFrame.from_records(records)).head()
+        df = df.assign(**pd.DataFrame.from_records(records))
         df = prep_df(df.drop(['DataJson'], axis=1), index_col='date')
         return df

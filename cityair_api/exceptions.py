@@ -24,7 +24,7 @@ class ServerException(CityAirException):
         body.update(User='***', Pwd='***')
         message = f"Error while getting data:\nurl: {response.url}\nrequest body: {body}\n"
         try:
-            message+= f"{response.json()['ErrorMessage']}:\n{response.json()['ErrorMessageDetals']}"
+            message+= f"{response.json()['ErrorMessage']}:\n{response.json().get('ErrorMessageDetals')}"
         except KeyError:
             message += str(response.json())
         super().__init__(message)
