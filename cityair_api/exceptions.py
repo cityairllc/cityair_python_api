@@ -36,7 +36,7 @@ class EmptyDataException(CityAirException):
         if response:
             body = json.loads(response.request.body.decode('utf-8'))
             body.update(User='***', Pwd='***')
-            message += "\nurl: {response.url}\nrequest body: {body}\n"
+            message += f"\nurl: {response.url}\nrequest body: {body}\n"
         if serial_number:
             message = message.replace("request", f"{serial_number} device")
         super().__init__(message)
