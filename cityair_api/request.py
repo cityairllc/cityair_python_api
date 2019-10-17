@@ -6,8 +6,9 @@ import json
 from sys import getsizeof
 from collections import OrderedDict
 from enum import Enum
-from cityair_api.utils import to_date, timeit, debugit, prep_dicts, prep_df, USELESS_COLS
+from cityair_api.utils import to_date, timeit, debugit, prep_dicts, prep_df, USELESS_COLS, RIGHT_PARAMS_NAMES
 from cityair_api.exceptions import EmptyDataException, NoAccessException, ServerException, CityAirException
+from collections.abc import Iterable
 
 
 class Period(Enum):
@@ -39,6 +40,7 @@ class CityAirRequest:
         self.timeout = kwargs.get('timeout', 100)
         self.user = user
         self.psw = psw
+        self.stations_by_device = {}
         self._prepare()
 
     def _prepare(self):
@@ -59,7 +61,7 @@ class CityAirRequest:
             for device in device_list:
                 try:
                     if station not in self.stations_by_device[device]:
-                        self.stations_by_device[device] += [station]
+                        self.stations_by_device[device].append(station)
                 except KeyError:
                     self.stations_by_device[device] = [station]
 
@@ -130,9 +132,10 @@ class CityAirRequest:
         if include_children:
             df = df_with_children
         df.set_index('serial_number', inplace=True, drop=False)
-
-        df['stations'] = pd.Series(self.stations_by_device)
-        df['children'].apply(lambda children_info: [child_info.pop('id') for child_info in children_info])
+        df['stations'] = pd.Series(getattr(self, 'stations_by_device', None))
+        df['children'].apply(
+            lambda children_info: [child_info.pop('id') for child_info in children_info] if isinstance(children_info,
+                                                                                                       Iterable) else [])
         if format == 'dicts':
             res = []
             for serial_number, row in df.iterrows():
@@ -268,16 +271,23 @@ class CityAirRequest:
         locations = dict(zip([(data.get('LocationId')) for data in locations_data],
                              [data.get('Name') for data in locations_data]))
         for device_data in devices_data:
-            self.device_by_id.update({device_data.get('DeviceId'): device_data.get('SerialNumber') })
+            self.device_by_id.update({device_data.get('DeviceId'): device_data.get('SerialNumber')})
         df = pd.DataFrame.from_records(stations_data)
         if format == 'raw':
             return df
         df = prep_df(df, index_col='id')
 
-        df['devices'] = df['devices_auto'].apply(lambda link: [link.get('DeviceId', None)] if link else []) + df[
-            'devices_manual'].apply(lambda links: [link.get('DeviceId', None) for link in links] if links else [])
+        df['devices'] = df['devices_auto'].apply(
+            lambda link: self.device_by_id.get(link.get('DeviceId')) if link else None)
+        devices_with_children = self.get_devices(format='dicts')
+        children = dict(zip([device_info.get('serial_number') for device_info in devices_with_children],
+                            [[c.get('serial_number') for c in device_info.get('children')] for device_info in
+                             devices_with_children]))
+
+        df['devices'] = df['devices'].apply(lambda serial: [serial] + children.get(serial, []) if serial else [])
+        df['devices'] += df['devices_manual'].apply(
+            lambda links: [self.device_by_id.get(link.get('DeviceId')) for link in links] if links else [])
         df.drop(['devices_auto', 'devices_manual'], axis=1, inplace=True)
-        df['devices'] = df['devices'].apply(lambda ids: set([self.device_by_id.get(id_, None) for id_ in ids]))
         df['location'] = df['location'].apply(lambda id_: locations.get(id_, None) if id_ else None)
 
         if not include_offline:
@@ -288,9 +298,10 @@ class CityAirRequest:
                 row = dict(row)
                 res.append(OrderedDict(
                     [(df.index.name, id_),
-                     ('name', row.get('publish_name') or row.get('name'))]
+                     ('name', row.get('publish_name') or row.get('name')),
+                     ('name_ru', row.get('publish_name_ru'))]
                     +
-                    [(param, row.get(param)) for param in ('location', 'gmt_offset', 'devices')]
+                    [(param, row.get(param)) for param in ('location', 'gmt_offset', 'devices',)]
                 ))
             return res
         elif format == 'list':
@@ -306,7 +317,6 @@ class CityAirRequest:
                          take_count: int = 1000, period: Period = Period.TWENTY_MINS, **kwargs):
         """
         Provides data from the selected station
-
         Parameters
         ----------
         station_id : id
@@ -342,3 +352,23 @@ class CityAirRequest:
         df = df.assign(**pd.DataFrame.from_records(records))
         df = prep_df(df.drop(['DataJson'], axis=1), index_col='date')
         return df
+
+    def get_locations(self):
+        """
+        Provides information on locations including stations and devices
+        """
+        stations = self.get_stations(format='dicts')
+        stations_by_location = {}
+        for station in stations:
+            location = station.pop('location')
+            if location:
+                try:
+                    stations_by_location[location].append(station)
+                except KeyError:
+                    stations_by_location[location] = [station]
+
+        locations_data = self._make_request(f"MoApi2/GetMoItems", "Locations")
+        locations_data = prep_dicts(locations_data, RIGHT_PARAMS_NAMES, USELESS_COLS + ['LocationId'])
+        for location_data in locations_data:
+            location_data['stations'] = stations_by_location.get(location_data.get('name'))
+        return locations_data

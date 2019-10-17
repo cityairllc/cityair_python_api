@@ -29,14 +29,17 @@ RIGHT_PARAMS_NAMES = {'FlagPs220': '220', 'RecvDate': 'receive_date',
                       'ManualDeviceLinks': 'devices_manual', 'DeviceLink': 'devices_auto', 'GmtOffset': 'gmt_offset',
                       'DotItem': 'coordinates',
                       'Latitude': 'latitude', 'Longitude': 'longitude', 'LocationId': 'location',
-                      'GeoInfo': 'coordinates', 'DataAqi': 'AQI'
+                      'GeoInfo': 'coordinates', 'DataAqi': 'AQI', 'GmtHour':'gmt_hour_diff', 'PublishOnMap': 'is_public', 'NameRu': 'name_ru'
                       }
 USELESS_COLS = ['220', 'BatLow', 'receive_date', 'GeoInfo', 'Date', 'SendDate', 'latitude', 'longitude',
                 'description', 'coordinates',
                 'FlagBatLowHasFailed', 'FlagPs220HasFailed', 'IsNotSaveData',
                 'ParentDeviceId', 'SourceType', 'tags', 'DataProviderId',
                 'IsDeleted', 'IsManualParamLinks', 'IsStartInterval1H', 'ManualPacketParamLinks', 'PacketId',
-                'Timestamp', 'is_bat_low']
+                'Timestamp', 'is_bat_low', 'BounceNorth','BounceSouth', 'BounceEast','BounceWest', 'CountryId',
+
+                'BounceNorth', 'BounceSouth', 'BounceEast', 'BounceWest',
+                'GmtHour', 'LocationUrl']
 
 
 def unpack_cols(df, cols_to_unpack, right_params_names=RIGHT_PARAMS_NAMES):
@@ -53,7 +56,7 @@ def prep_dicts(dicts, newkeys, keys_to_drop, dropna=True):
         for key, value in zip(d.keys(), d.values()):
             if key in keys_to_drop:
                 continue
-            if dropna and not value:
+            if dropna and value == None:
                 continue
             if key == 'is_offline':
                 new_dict['is_online'] = not value
