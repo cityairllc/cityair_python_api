@@ -83,9 +83,17 @@ class CityAirRequest:
         body = {"User": getattr(self, 'user'), "Pwd": getattr(self, 'psw'), **kwargs}
         url = f"{self.host_url}/{method_url}"
         response = requests.post(url, json=body, timeout=self.timeout)
-        if response.json()['IsError']:
+        try:
+            response.raise_for_status()
+        except requests.exceptions.HTTPError as e:
+            raise CityAirException(f"Got HTTP error: {e}") from e
+        try:
+            response_json = response.json()
+        except json.JSONDecodeError as e:
+            raise CityAirException(f"Suddenly got empty json. Couldn't decode it: {e}") from e
+        if response_json.get('IsError'):
             raise ServerException(response)
-        response_data = response.json()['Result']
+        response_data = response_json.get('Result')
         for key in keys:
             if len(response_data[key]) == 0:
                 raise EmptyDataException(response=response)
