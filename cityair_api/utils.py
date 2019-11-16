@@ -85,8 +85,8 @@ def prep_df(df: pd.DataFrame, right_param_names: dict = RIGHT_PARAMS_NAMES, cols
         res[col] = res[col].apply(prep_dicts, args=[right_param_names, cols_to_drop, dropna])
     try:
         res = unpack_cols(res, cols_to_unpack)
-    except KeyError:
-        print(f'unable to unpack {e} column')
+    except KeyError as e:
+        pass
     if dropna:
         res.dropna(how='all', axis=1, inplace=True)
     for col in res:

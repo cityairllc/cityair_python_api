@@ -240,7 +240,8 @@ class CityAirRequest:
             except KeyError:
                 res[serial_number] = df.drop(values_cols + ['DataJson'], axis=1)
             for device in res:
-                res[device] = prep_df(res[device], index_col='date')
+                res[device] = prep_df(res[device], index_col='date', cols_to_unpack=['coordinates'],
+                         cols_to_drop=[] if all_cols else USELESS_COLS)
             return res
         else:
             value_types_count = Counter(list(
