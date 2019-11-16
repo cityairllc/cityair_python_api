@@ -18,7 +18,7 @@ class Period(Enum):
     DAY = 4
 
 
-DEFAULT_HOST = "https://cityair.io/backend-api/request-v2.php?map=/"
+DEFAULT_HOST = "https://cityair.io/backend-api/request-v2.php?map="
 
 
 class CityAirRequest:
@@ -96,17 +96,18 @@ class CityAirRequest:
         else:
             return [response_data[key] for key in keys]
 
-    def get_devices(self, format: str = 'list', include_offline: bool = True, include_children: bool = False, **kwargs):
+    def get_devices(self, format: str = 'list', include_offline: bool = True, include_children: bool = False,
+                    timeit=False, debugit=False):
         """
         Provides devices information in various formats
 
         Parameters
         ----------
-        format :  {'list', 'df', 'dicts', 'raw'}, default 'list'
-            in case of 'list' - returns list of serial_numbers
-            in case of 'df' - returns pd.DataFrame pretty formatted
-            in case of 'dicts' - returns list of dictionaries, each including various params
-            in case of 'raw' - returns pd.DataFrame including all info got from server, other params are ignored
+        format:  {'list', 'df', 'dicts', 'raw'}, default 'list'
+            * 'list' : returns list of serial_numbers
+            * 'df' : returns pd.DataFrame pretty formatted
+            * 'dicts' : returns list of dictionaries, each including various params
+            * 'raw' : returns pd.DataFrame including all info got from server, other params are ignored
         include_offline: bool, default True
             whether to include offline devices to the output
         include_children : bool, default False
@@ -117,7 +118,7 @@ class CityAirRequest:
             whether to print raw request and response data
         -------"""
         devices_data = self._make_request(f"DevicesApi2/GetDevices", "Devices",
-                                          **kwargs)
+                                          timeit=timeit, debugit=debugit)
         df = pd.DataFrame.from_records(devices_data)
         if format == 'raw':
             return df
@@ -157,7 +158,8 @@ class CityAirRequest:
     def get_device_data(self, serial_number: str, start_date=None,
                         finish_date=datetime.datetime.now(),
                         take_count: int = 1000, all_cols=False,
-                        separate_device_data: bool = False, **kwargs):
+                        separate_device_data: bool = False,
+                        timeit=False, debugit=False):
         """
         Provides data from the selected device
 
@@ -200,7 +202,8 @@ class CityAirRequest:
         else:
             filter_['FilterType'] = 3
             filter_['Skip'] = 0
-        packets = self._make_request("DevicesApi2/GetPackets", 'Packets', Filter=filter_, **kwargs)
+        packets = self._make_request("DevicesApi2/GetPackets", 'Packets', Filter=filter_, timeit=timeit,
+                                     debugit=debugit)
         df = pd.DataFrame.from_records(packets)
 
         df.drop(['Data', 'PacketId'], 1, inplace=True, errors='ignore')
@@ -247,17 +250,18 @@ class CityAirRequest:
                          cols_to_drop=[] if all_cols else USELESS_COLS)
             return df
 
-    def get_stations(self, format: str = 'list', include_offline: bool = True, **kwargs):
+    def get_stations(self, format: str = 'list', include_offline: bool = True,
+                     timeit=False, debugit=False):
         """
         Provides devices information in various formats
 
         Parameters
         ----------
         format:  {'list', 'df', 'dicts', 'raw'}, default 'list'
-            in case of 'list' - returns list of serial_numbers
-            in case of 'df' - returns pd.DataFrame pretty formatted
-            in case of 'dicts' - returns list of dictionaries, each including various params
-            in case of 'raw' - returns pd.DataFrame including all info got from server, other params are ignored
+            * 'list' : returns list of serial_numbers
+            * 'df' : returns pd.DataFrame pretty formatted
+            * 'dicts' : returns list of dictionaries, each including various params
+            * 'raw' : returns pd.DataFrame including all info got from server, other params are ignored
         include_offline: bool, default True
            whether to include offline devices to the output
         timeit: bool, default False
@@ -266,8 +270,8 @@ class CityAirRequest:
            whether to print raw request and response data
         -------"""
         locations_data, stations_data, devices_data = self._make_request(f"MoApi2/GetMoItems", "Locations",
-                                                                         "MoItems", "Devices"
-                                                                         , **kwargs)
+                                                                         "MoItems", "Devices",
+                                                                         timeit=timeit, debugit=debugit)
         locations = dict(zip([(data.get('LocationId')) for data in locations_data],
                              [data.get('Name') for data in locations_data]))
         for device_data in devices_data:
@@ -314,7 +318,8 @@ class CityAirRequest:
 
     def get_station_data(self, station_id: int, start_date=None,
                          finish_date=datetime.datetime.now(),
-                         take_count: int = 1000, period: Period = Period.TWENTY_MINS, **kwargs):
+                         take_count: int = 1000, period: Period = Period.TWENTY_MINS,
+                         timeit=False, debugit=False):
         """
         Provides data from the selected station
         Parameters
@@ -325,7 +330,7 @@ class CityAirRequest:
             dates on which data is being queried
         take_count : int, default 1000
             count of packets which is requested from the server
-        period: Period (enum), default Period.TWENTY_MINS
+        period: Period (enum), default cityair_api.Period.TWENTY_MINS
             period could be five mins, twenty mins, hour, day
         timeit: bool, default False
             whether to print how long it took to gather data
@@ -342,7 +347,7 @@ class CityAirRequest:
         else:
             filter_['FilterType'] = 3
             filter_['SkipFromLast'] = 0
-        packets = self._make_request("MoApi2/GetMoPackets", 'Packets', Filter=filter_, **kwargs)
+        packets = self._make_request("MoApi2/GetMoPackets", 'Packets', Filter=filter_, timeit=timeit, debugit=debugit)
         df = pd.DataFrame.from_records(packets)
         records = []
         for packets in df['DataJson']:
