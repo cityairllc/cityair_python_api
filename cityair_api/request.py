@@ -37,7 +37,6 @@ class CityAirRequest:
     -------"""
 
     def __init__(self, user: str, psw: str, **kwargs):
-        print('dsa')
         self.host_url = kwargs.get('host_url', DEFAULT_HOST)
         self.timeout = kwargs.get('timeout', 100)
         self.user = user
