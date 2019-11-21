@@ -238,7 +238,7 @@ class CityAirRequest:
                     # res[serial] = series_to_append.to_frame()
             try:
                 res[serial_number] = pd.concat(
-                    [df.drop(values_cols + ['Data', 'SendDate'], axis=1, errors='ignore'), res[serial_number]], axis=1)
+                    [df.drop(values_cols + ['Data', 'SendDate','date'], axis=1, errors='ignore'), res[serial_number]], axis=1)
             except KeyError:
                 res[serial_number] = df.drop(values_cols + ['Date'], axis=1)
             for device in res:

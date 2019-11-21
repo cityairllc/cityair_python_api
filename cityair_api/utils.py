@@ -97,7 +97,7 @@ def prep_df(df: pd.DataFrame, right_param_names: dict = RIGHT_PARAMS_NAMES, cols
         res.drop('is_offline', axis=1, inplace=True)
     except KeyError as e:
         pass
-    if index_col and index_col in df.columns:
+    if index_col and index_col in res.columns:
         res.set_index(index_col, inplace=True)
     res.rename(right_param_names, axis=1, inplace=True)
     res = res.drop(cols_to_drop, axis=1, errors='ignore')
@@ -130,7 +130,6 @@ def debugit(method):
     Decorator to print raw response and request data
 
     """
-
     @wraps(method)
     def print_request_response(*args, **kwargs):
         debugit_ = kwargs.pop('debugit', False)
@@ -141,5 +140,4 @@ def debugit(method):
         if debugit_:
             print(f"url: {url}\nrequest_body: {body}\nresponse: {result}")
         return result
-
     return print_request_response
