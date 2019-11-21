@@ -44,7 +44,7 @@ USELESS_COLS = ['220', 'BatLow', 'receive_date', 'GeoInfo', 'Geo', 'Date', 'Send
                 'IsDeleted', 'IsManualParamLinks', 'IsStartInterval1H', 'ManualPacketParamLinks', 'PacketId',
                 'Timestamp', 'is_bat_low', 'BounceNorth', 'BounceSouth', 'BounceEast', 'BounceWest', 'CountryId',
                 'BounceNorth', 'BounceSouth', 'BounceEast', 'BounceWest',
-                'GmtHour', 'LocationUrl']
+                'GmtHour', 'LocationUrl', 'DistributionSummary','SortRank']
 
 
 def add_progress_bar(method):

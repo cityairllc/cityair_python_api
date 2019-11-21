@@ -27,8 +27,7 @@ df = r.get_device_data(serial_number,
                        start_date=START_DATE,
                        finish_date=FINISH_DATE,
                        take_count=300,
-                       format='df',
-                       debug=True)
+                       format='df')
 print(df.head(2))
 assert isinstance(df.index, pd.core.indexes.datetimes.DatetimeIndex), f'the type of df.index is {type(df.index)}'
 
@@ -64,3 +63,8 @@ df = r.get_station_data(station_id,
                         take_count=2,
                         debug=True)
 print(df.head())
+
+
+print(f'\n\n----------------getting locations-----------------------')
+locations = r.get_locations()
+print(locations[:2])

@@ -10,6 +10,7 @@ from .utils import to_date, timeit, add_progress_bar, unpack_cols, debugit, prep
     RIGHT_PARAMS_NAMES
 from .exceptions import EmptyDataException, NoAccessException, ServerException, CityAirException
 from collections.abc import Iterable
+from cached_property import cached_property
 
 
 class Period(Enum):
@@ -41,30 +42,55 @@ class CityAirRequest:
         self.timeout = kwargs.get('timeout', 100)
         self.user = user
         self.psw = psw
-        self.stations_by_device = {}
-        self._prepare()
 
-    def _prepare(self):
-        value_types_data, devices_data = self._make_request(f"DevicesApi2/GetDevices", "PacketsValueTypes", "Devices")
-        self.value_types = dict(zip([(data.get('ValueType')) for data in value_types_data],
-                                    [data.get('TypeName') for data in value_types_data]))
-        self.device_by_serial = dict(zip([(data.get('SerialNumber')) for data in devices_data],
-                                         [data.get('DeviceId') for data in devices_data]))
-        self.device_by_id = dict(zip([(data.get('DeviceId')) for data in devices_data],
-                                     [data.get('SerialNumber') for data in devices_data]))
+    @cached_property
+    def _device_by_serial(self):
+        devices_data = self._make_request(f"DevicesApi2/GetDevices", "Devices")
+        return dict(zip([(data.get('SerialNumber')) for data in devices_data],
+                        [data.get('DeviceId') for data in devices_data]))
+
+    @cached_property
+    def _value_types(self):
+        value_types_data = self._make_request(f"DevicesApi2/GetDevices", "PacketsValueTypes")
+        return dict(zip([(data.get('ValueType')) for data in value_types_data],
+                        [data.get('TypeName') for data in value_types_data]))
+
+    @cached_property
+    def _device_by_id(self):
+        devices_data = self._make_request(f"DevicesApi2/GetDevices", "Devices")
+        device_by_id = dict(zip([(data.get('DeviceId')) for data in devices_data],
+                                [data.get('SerialNumber') for data in devices_data]))
         for device in devices_data:
             for child in device.get('ChildDevices', []):
-                self.device_by_id.update({child["DeviceId"]: child['SerialNumber']})
+                device_by_id.update({child["DeviceId"]: child['SerialNumber']})
+        return device_by_id
+
+    @cached_property
+    def _device_and_children_by_id(self):
+        devices_data = self._make_request(f"DevicesApi2/GetDevices", "Devices")
+        res = {}
+        for data in devices_data:
+            key = data.get('DeviceId')
+            serials = [data.get('SerialNumber')]
+            for child_data in data.get('ChildDevices'):
+                serials.append(child_data.get('SerialNumber'))
+                res[child_data.get('Id')] = [child_data.get('SerialNumber')]
+            res[key] = serials
+        return res
+
+    @cached_property
+    def _stations_by_device(self):
         stations = self.get_stations(format='dicts')
-        self.stations_by_device = {}
+        res = {}
         for station in stations:
             device_list = station.pop('devices')
             for device in device_list:
                 try:
-                    if station not in self.stations_by_device[device]:
-                        self.stations_by_device[device].append(station)
+                    if station not in res[device]:
+                        res[device].append(station)
                 except KeyError:
-                    self.stations_by_device[device] = [station]
+                    res[device] = [station]
+        return res
 
     @debugit
     @timeit
@@ -153,7 +179,7 @@ class CityAirRequest:
                 main_params = ['serial_number', 'name', 'children', 'check_infos']
                 single_dict = dict(zip(main_params, [row.pop(param, None) for param in main_params]))
                 single_dict['misc'] = OrderedDict(sorted(row.items(), key=lambda item: getsizeof(item[1])))
-                single_dict.update({'stations': self.stations_by_device.get(serial_number)})
+                single_dict.update({'stations': self._stations_by_device.get(serial_number)})
                 res.append(OrderedDict(sorted(single_dict.items(), key=lambda item: getsizeof(item[1]))))
             return res
         elif format == 'list':
@@ -197,12 +223,9 @@ class CityAirRequest:
         debug: bool, default False
             whether to print raw request and response data
         -------"""
-        try:
-            device_id = self.device_by_serial[serial_number]
-        except AttributeError:
-            self._prepare()
-            device_id = self.device_by_serial[serial_number]
-        except KeyError:
+
+        device_id = self._device_by_serial.get(serial_number)
+        if not device_id:
             raise NoAccessException(serial_number)
         filter_ = {'Take': take_count,
                    'DeviceId': device_id}
@@ -231,8 +254,8 @@ class CityAirRequest:
             res = dict()
             for col in values_cols:
                 _, device_id, value_id = col.split(' ')
-                serial = self.device_by_id[int(device_id)]
-                value_name = self.value_types[int(value_id)]
+                serial = self._device_by_id[int(device_id)]
+                value_name = self._value_types[int(value_id)]
                 series_to_append = df[col].rename(value_name)
                 try:
                     res[serial] = pd.concat([res[serial], series_to_append], axis=1)
@@ -253,8 +276,8 @@ class CityAirRequest:
                 map(lambda s: (s.split(' ')[-1]), values_cols)))
             for col in list(filter(lambda col: col.startswith('value'), df.columns)):
                 _, device_id, value_id = col.split(' ')
-                serial = self.device_by_id[int(device_id)]
-                value_name = self.value_types[int(value_id)]
+                serial = self._device_by_id[int(device_id)]
+                value_name = self._value_types[int(value_id)]
                 if value_types_count[value_id] > 1:
                     proper_col_name = f"{value_name} [{serial}]"
                 else:
@@ -293,22 +316,18 @@ class CityAirRequest:
         locations = dict(zip([(data.get('LocationId')) for data in locations_data],
                              [data.get('Name') for data in locations_data]))
         for device_data in devices_data:
-            self.device_by_id.update({device_data.get('DeviceId'): device_data.get('SerialNumber')})
+            self._device_by_id.update({device_data.get('DeviceId'): device_data.get('SerialNumber')})
         df = pd.DataFrame.from_records(stations_data)
         if format == 'raw':
             return df
         df = prep_df(df, index_col='id')
 
         df['devices'] = df['devices_auto'].apply(
-            lambda link: self.device_by_id.get(link.get('DeviceId')) if link else None)
-        devices_with_children = self.get_devices(format='dicts')
-        children = dict(zip([device_info.get('serial_number') for device_info in devices_with_children],
-                            [[c.get('serial_number') for c in device_info.get('children')] for device_info in
-                             devices_with_children]))
+            lambda link: self._device_and_children_by_id.get(link.get('DeviceId')) if link else [])
 
-        df['devices'] = df['devices'].apply(lambda serial: [serial] + children.get(serial, []) if serial else [])
         df['devices'] += df['devices_manual'].apply(
-            lambda links: [self.device_by_id.get(link.get('DeviceId')) for link in links] if links else [])
+            lambda links: [self._device_by_id.get(link.get('DeviceId')) for link in
+                           links] if links else [])
         df.drop(['devices_auto', 'devices_manual'], axis=1, inplace=True)
         df['location'] = df['location'].apply(lambda id_: locations.get(id_, None) if id_ else None)
 
@@ -373,7 +392,7 @@ class CityAirRequest:
         records = []
         for packets in df['DataJson']:
             packets = json.loads(packets)
-            records.append(dict(zip([self.value_types.get(packet['Id'], 'undefined') for packet in packets],
+            records.append(dict(zip([self._value_types.get(packet['Id'], 'undefined') for packet in packets],
                                     [packet['Sum'] / packet['Cnt'] for packet in packets])))
         df = df.assign(**pd.DataFrame.from_records(records))
         df = prep_df(df.drop(['DataJson'], axis=1), index_col='date')
