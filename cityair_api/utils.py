@@ -6,8 +6,13 @@ from functools import wraps
 from typing import List
 from sys import getsizeof
 from collections import OrderedDict
-
-"""
+import pytz
+import datetime
+from functools import wraps
+import time
+import progressbar
+from exceptions import EmptyDataException
+"""re
 TODO
 
 docstrings refactor
@@ -39,6 +44,57 @@ USELESS_COLS = ['220', 'BatLow', 'receive_date', 'GeoInfo','Geo', 'Date', 'SendD
 
                 'BounceNorth', 'BounceSouth', 'BounceEast', 'BounceWest',
                 'GmtHour', 'LocationUrl']
+
+TAKE_COUNT = 500
+PROGRESS_SCALER = 10**6
+
+def add_progress_bar(method):
+    """
+    Decorator to print time elapsed
+
+    """
+
+    @wraps(method)
+    def progressed(*args, **kwargs):
+        show_progress = kwargs.pop('show_progress', True)
+        start_date = to_date(kwargs.get('start_date'))
+        if not start_date or not show_progress:
+            return method(*args, **kwargs)
+        finish_date = to_date(kwargs.get('finish_date', datetime.datetime.utcnow().replace(tzinfo=pytz.utc)))
+        kwargs.update(take_count=TAKE_COUNT)
+        bar = progressbar.ProgressBar(max_value=(finish_date - start_date).total_seconds() / PROGRESS_SCALER,
+                                      # redirect_stdout=True,
+                                      widgets=[
+                                          progressbar.Timer(),
+                                          progressbar.Bar(),
+                                          progressbar.Percentage(), '\t',
+                                          progressbar.ETA(),
+                                      ])
+        if kwargs.get('format', 'df') == 'df':
+            res = pd.DataFrame()
+        else:
+            res = dict()
+
+        while finish_date - start_date > datetime.timedelta(hours=1):
+            try:
+                df = method(*args, **kwargs)
+                if isinstance(res, pd.DataFrame):
+                    res = pd.concat([res, df])
+                    start_date = res.index[-1]
+                else:
+                    for key in df:
+                        res[key] = pd.concat([res.get(key, pd.DataFrame()), df[key]])
+                    start_date = max([res[key].index[-1] for key in res])
+            except (EmptyDataException):
+                print('empty')
+                print('heello')
+                start_date += datetime.timedelta(days=1)
+
+            kwargs.update(start_date=start_date)
+            bar.update(bar.max_value - (finish_date - start_date).total_seconds() / PROGRESS_SCALER)
+        return res
+
+    return progressed
 
 
 def unpack_cols(df, cols_to_unpack, right_params_names=RIGHT_PARAMS_NAMES):

@@ -166,7 +166,7 @@ class CityAirRequest:
     def get_device_data(self, serial_number: str, start_date=None,
                         finish_date=datetime.datetime.now(),
                         take_count: int = 1000, all_cols=False,
-                        separate_device_data: bool = False,
+                        format: str = 'df',
                         timeit=False, debugit=False):
         """
         Provides data from the selected device
@@ -224,7 +224,7 @@ class CityAirRequest:
                 [packet['V'] for packet in packets])))
         df = df.assign(**pd.DataFrame.from_records(records))
         values_cols = list(filter(lambda col: col.startswith('value'), df.columns))
-        if separate_device_data:
+        if format=='dict':
             res = dict()
             for col in values_cols:
                 _, device_id, value_id = col.split(' ')
@@ -240,12 +240,12 @@ class CityAirRequest:
                 res[serial_number] = pd.concat(
                     [df.drop(values_cols + ['Data', 'SendDate','date'], axis=1, errors='ignore'), res[serial_number]], axis=1)
             except KeyError:
-                res[serial_number] = df.drop(values_cols + ['Date'], axis=1)
+                res[serial_number] = df.drop(values_cols + ['Date'], axis=1, errors = 'ignore')
             for device in res:
                 res[device] = prep_df(res[device], index_col='date', cols_to_unpack=['coordinates'],
                                       cols_to_drop=[] if all_cols else USELESS_COLS)
             return res
-        else:
+        elif format=='df':
             value_types_count = Counter(list(
                 map(lambda s: (s.split(' ')[-1]), values_cols)))
             for col in list(filter(lambda col: col.startswith('value'), df.columns)):
@@ -261,6 +261,9 @@ class CityAirRequest:
                          index_col='date', cols_to_unpack=['coordinates'],
                          cols_to_drop=[] if all_cols else USELESS_COLS)
             return df
+        else:
+            raise ValueError(
+                f"Unknown option of format argument: {format}. Available formats are: 'df', 'dict'")
 
     def get_stations(self, format: str = 'list', include_offline: bool = True,
                      timeit=False, debugit=False):
