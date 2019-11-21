@@ -11,14 +11,15 @@ import datetime
 from functools import wraps
 import time
 import progressbar
-from exceptions import EmptyDataException
+from .exceptions import EmptyDataException
+
 """re
 TODO
 
 docstrings refactor
 
 """
-RIGHT_PARAMS_NAMES = {'FlagPs220': '220', 'RecvDate': 'receive_date', 'Ps220': '220','GsmRssi': 'rssi',
+RIGHT_PARAMS_NAMES = {'FlagPs220': '220', 'RecvDate': 'receive_date', 'Ps220': '220', 'GsmRssi': 'rssi',
                       'SendDate': 'date', 'Temperature': 'T', 'BatLow': 'is_bat_low',
                       'Humidity': 'RH', 'Pressure': 'P',
                       'ChildDevices': 'children', 'DataDeliveryPeriodSec': 'delivery_period',
@@ -33,65 +34,72 @@ RIGHT_PARAMS_NAMES = {'FlagPs220': '220', 'RecvDate': 'receive_date', 'Ps220': '
                       'ManualDeviceLinks': 'devices_manual', 'DeviceLink': 'devices_auto', 'GmtOffset': 'gmt_offset',
                       'DotItem': 'coordinates',
                       'Latitude': 'latitude', 'Longitude': 'longitude', 'LocationId': 'location',
-                      'GeoInfo': 'coordinates','Geo': 'coordinates', 'DataAqi': 'AQI', 'GmtHour':'gmt_hour_diff', 'PublishOnMap': 'is_public', 'NameRu': 'name_ru'
+                      'GeoInfo': 'coordinates', 'Geo': 'coordinates', 'DataAqi': 'AQI', 'GmtHour': 'gmt_hour_diff',
+                      'PublishOnMap': 'is_public', 'NameRu': 'name_ru'
                       }
-USELESS_COLS = ['220', 'BatLow', 'receive_date', 'GeoInfo','Geo', 'Date', 'SendDate', 'latitude', 'longitude',
-                'description', 'coordinates','rssi',
+USELESS_COLS = ['220', 'BatLow', 'receive_date', 'GeoInfo', 'Geo', 'Date', 'SendDate', 'latitude', 'longitude',
+                'description', 'coordinates', 'rssi',
                 'FlagBatLowHasFailed', 'FlagPs220HasFailed', 'IsNotSaveData',
                 'ParentDeviceId', 'SourceType', 'tags', 'DataProviderId',
                 'IsDeleted', 'IsManualParamLinks', 'IsStartInterval1H', 'ManualPacketParamLinks', 'PacketId',
-                'Timestamp', 'is_bat_low', 'BounceNorth','BounceSouth', 'BounceEast','BounceWest', 'CountryId',
-
+                'Timestamp', 'is_bat_low', 'BounceNorth', 'BounceSouth', 'BounceEast', 'BounceWest', 'CountryId',
                 'BounceNorth', 'BounceSouth', 'BounceEast', 'BounceWest',
                 'GmtHour', 'LocationUrl']
 
-TAKE_COUNT = 500
-PROGRESS_SCALER = 10**6
 
 def add_progress_bar(method):
     """
-    Decorator to print time elapsed
+    Decorator to display progress bar
 
     """
+    PROGRESS_SCALER = 10 ** 6
+    DEFAULT_TAKE_COUNT = 500
 
     @wraps(method)
     def progressed(*args, **kwargs):
-        show_progress = kwargs.pop('show_progress', True)
+        verbose = kwargs.pop('verbose', False)
         start_date = to_date(kwargs.get('start_date'))
-        if not start_date or not show_progress:
+        time = kwargs.get('time', False)
+        debug = kwargs.get('debug', False)
+        if debug or time or verbose or (not start_date):
             return method(*args, **kwargs)
         finish_date = to_date(kwargs.get('finish_date', datetime.datetime.utcnow().replace(tzinfo=pytz.utc)))
-        kwargs.update(take_count=TAKE_COUNT)
+        kwargs.update(take_count=kwargs.get('take_count', DEFAULT_TAKE_COUNT))
         bar = progressbar.ProgressBar(max_value=(finish_date - start_date).total_seconds() / PROGRESS_SCALER,
-                                      # redirect_stdout=True,
+                                    #  redirect_stdout=True,
                                       widgets=[
+                                          f"{args[1]}",
+                                          ': ',
+                                          progressbar.Percentage(),
+                                          '    ',
                                           progressbar.Timer(),
                                           progressbar.Bar(),
-                                          progressbar.Percentage(), '\t',
-                                          progressbar.ETA(),
-                                      ])
+                                          progressbar.ETA()
+                                      ],
+                                      max_error=False
+                                      )
         if kwargs.get('format', 'df') == 'df':
             res = pd.DataFrame()
         else:
             res = dict()
-
         while finish_date - start_date > datetime.timedelta(hours=1):
             try:
                 df = method(*args, **kwargs)
                 if isinstance(res, pd.DataFrame):
-                    res = pd.concat([res, df])
+                    res = pd.concat([res, df], sort=False)
                     start_date = res.index[-1]
                 else:
                     for key in df:
-                        res[key] = pd.concat([res.get(key, pd.DataFrame()), df[key]])
+                        res[key] = pd.concat([res.get(key, pd.DataFrame()), df[key]], sort=False)
                     start_date = max([res[key].index[-1] for key in res])
-            except (EmptyDataException):
-                print('empty')
-                print('heello')
+            except EmptyDataException:
                 start_date += datetime.timedelta(days=1)
-
             kwargs.update(start_date=start_date)
             bar.update(bar.max_value - (finish_date - start_date).total_seconds() / PROGRESS_SCALER)
+        size = len(res) if isinstance(res, pd.DataFrame) else max(map(len, res.values()))
+        print(f'{datetime.datetime.now()}\tfinished acquiring {args[1]} data of size {size}')
+        if size == 0:
+            raise EmptyDataException
         return res
 
     return progressed
@@ -133,15 +141,15 @@ def to_date(date_string):
 
 def prep_df(df: pd.DataFrame, right_param_names: dict = RIGHT_PARAMS_NAMES, cols_to_drop: List[str] = USELESS_COLS,
             dicts_cols: List[str] = [], dropna: bool = True, index_col: str = None, cols_to_unpack: List[str] = []):
-
     res = df.copy()
+    res.dropna(how='all', axis = 0)
     res.rename(right_param_names, axis=1, inplace=True)
 
     for col in dicts_cols:
         res[col] = res[col].apply(prep_dicts, args=[right_param_names, cols_to_drop, dropna])
     try:
         res = unpack_cols(res, cols_to_unpack)
-    except KeyError as e:
+    except (KeyError, TypeError) as e:
         pass
     if dropna:
         res.dropna(how='all', axis=1, inplace=True)
@@ -168,13 +176,13 @@ def timeit(method):
 
     @wraps(method)
     def timed(*args, **kwargs):
-        timeit = kwargs.pop('timeit', False)
+        to_time = kwargs.pop('time', False)
         ts = time.time()
         result = method(*args, **kwargs)
         te = time.time()
-        if timeit:
+        if to_time:
             print(f"{te - ts:.2f} seconds took to {method.__name__} of size"
-            f"{sys.getsizeof(result) / 1000: .2f} KB\nargs were"
+                  f"{sys.getsizeof(result) / 1000: .2f} KB\nargs were"
                   f" {', '.join(map(str, args[1:]))}\nkwargs were: {kwargs}")
         return result
 
@@ -186,14 +194,17 @@ def debugit(method):
     Decorator to print raw response and request data
 
     """
+
     @wraps(method)
     def print_request_response(*args, **kwargs):
-        debugit_ = kwargs.pop('debugit', False)
+        to_debug = kwargs.pop('debug', False)
         obj = args[0]
         body = {"User": getattr(obj, 'user'), "Pwd": getattr(obj, 'psw'), **kwargs}
         url = f"{getattr(obj, 'host_url', None)}/{args[1]}"
+        if to_debug:
+            print(f"url: {url}\nrequest_body")
         result = method(*args, **kwargs)
-        if debugit_:
-            print(f"url: {url}\nrequest_body: {body}\nresponse: {result}")
+        if to_debug:
+            print(f"response: {result}")
         return result
     return print_request_response

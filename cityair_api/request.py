@@ -6,8 +6,9 @@ import json
 from sys import getsizeof
 from collections import OrderedDict
 from enum import Enum
-from utils import to_date, timeit, unpack_cols, debugit, prep_dicts, prep_df, USELESS_COLS, RIGHT_PARAMS_NAMES
-from exceptions import EmptyDataException, NoAccessException, ServerException, CityAirException
+from .utils import to_date, timeit, add_progress_bar, unpack_cols, debugit, prep_dicts, prep_df, USELESS_COLS, \
+    RIGHT_PARAMS_NAMES
+from .exceptions import EmptyDataException, NoAccessException, ServerException, CityAirException
 from collections.abc import Iterable
 
 
@@ -36,6 +37,7 @@ class CityAirRequest:
     -------"""
 
     def __init__(self, user: str, psw: str, **kwargs):
+        print('dsa')
         self.host_url = kwargs.get('host_url', DEFAULT_HOST)
         self.timeout = kwargs.get('timeout', 100)
         self.user = user
@@ -105,7 +107,7 @@ class CityAirRequest:
             return [response_data[key] for key in keys]
 
     def get_devices(self, format: str = 'list', include_offline: bool = True, include_children: bool = False,
-                    timeit=False, debugit=False):
+                    time=False, debug=False):
         """
         Provides devices information in various formats
 
@@ -120,13 +122,13 @@ class CityAirRequest:
             whether to include offline devices to the output
         include_children : bool, default False
             whether to include info of child devices to the output
-        timeit: bool, default False
+        time: bool, default False
             whether to print how long it took to gather data
-        debugit: bool, default False
+        debug: bool, default False
             whether to print raw request and response data
         -------"""
         devices_data = self._make_request(f"DevicesApi2/GetDevices", "Devices",
-                                          timeit=timeit, debugit=debugit)
+                                          time=time, debug=debug)
         df = pd.DataFrame.from_records(devices_data)
         if format == 'raw':
             return df
@@ -158,16 +160,17 @@ class CityAirRequest:
         elif format == 'list':
             return list(df.index)
         elif format == 'df':
-            return df
+            return df.set_index('serial_number')
         else:
             raise ValueError(
                 f"Unknown type of format argument: {format}. Available formats are: 'list', 'df', 'dicts', 'raw'")
 
+    @add_progress_bar
     def get_device_data(self, serial_number: str, start_date=None,
                         finish_date=datetime.datetime.now(),
-                        take_count: int = 1000, all_cols=False,
-                        format: str = 'df',
-                        timeit=False, debugit=False):
+                        take_count: int = 500, all_cols=False,
+                        format: str = 'df', verbose=False,
+                        time=False, debug=False):
         """
         Provides data from the selected device
 
@@ -182,16 +185,17 @@ class CityAirRequest:
         all_cols: bool, default False
             whether to keep or drop columns which are not directly related to air
              quality data (i.e. battery status, ps 220, recieve date)
-        separate_device_data: bool, default False
-            whether to separate dfs for individual devices.
-            if False - returns one pd.DataFrame, where value_name is concatenated with
-                serial_number of the device if there is more than one device
-                measuring values of a type
-            if True - returns dictionary, where keys are serial_number of
-                the device and value is pd.DataFrame containing all data of each device
-        timeit: bool, default False
+        format:  {'df', 'dict'}, default 'df'
+            * 'df' : returns one pd.DataFrame, where value_name is concatenated with
+                     serial_number of the device if there is more than one device
+                     measuring values of a type
+            * 'dict' : returns dictionary, where key is serial_number of
+                       the device and value is pd.DataFrame containing all data of the device
+        verbose: bool, default True:
+            whether to show progress bar
+        time: bool, default False
             whether to print how long it took to gather data
-        debugit: bool, default False
+        debug: bool, default False
             whether to print raw request and response data
         -------"""
         try:
@@ -210,8 +214,8 @@ class CityAirRequest:
         else:
             filter_['FilterType'] = 3
             filter_['Skip'] = 0
-        packets = self._make_request("DevicesApi2/GetPackets", 'Packets', Filter=filter_, timeit=timeit,
-                                     debugit=debugit)
+        packets = self._make_request("DevicesApi2/GetPackets", 'Packets', Filter=filter_, time=time,
+                                     debug=debug)
         df = pd.DataFrame.from_records(packets)
 
         df = unpack_cols(df, ['ServiceData'])
@@ -224,7 +228,7 @@ class CityAirRequest:
                 [packet['V'] for packet in packets])))
         df = df.assign(**pd.DataFrame.from_records(records))
         values_cols = list(filter(lambda col: col.startswith('value'), df.columns))
-        if format=='dict':
+        if format == 'dict':
             res = dict()
             for col in values_cols:
                 _, device_id, value_id = col.split(' ')
@@ -235,17 +239,17 @@ class CityAirRequest:
                     res[serial] = pd.concat([res[serial], series_to_append], axis=1)
                 except KeyError:
                     res[serial] = pd.concat([df['date'], series_to_append], axis=1)
-                    # res[serial] = series_to_append.to_frame()
             try:
                 res[serial_number] = pd.concat(
-                    [df.drop(values_cols + ['Data', 'SendDate','date'], axis=1, errors='ignore'), res[serial_number]], axis=1)
+                    [df.drop(values_cols + ['Data', 'SendDate', 'date'], axis=1, errors='ignore'), res[serial_number]],
+                    axis=1)
             except KeyError:
-                res[serial_number] = df.drop(values_cols + ['Date'], axis=1, errors = 'ignore')
+                res[serial_number] = df.drop(values_cols + ['Data'], axis=1, errors='ignore')
             for device in res:
                 res[device] = prep_df(res[device], index_col='date', cols_to_unpack=['coordinates'],
                                       cols_to_drop=[] if all_cols else USELESS_COLS)
             return res
-        elif format=='df':
+        elif format == 'df':
             value_types_count = Counter(list(
                 map(lambda s: (s.split(' ')[-1]), values_cols)))
             for col in list(filter(lambda col: col.startswith('value'), df.columns)):
@@ -266,7 +270,7 @@ class CityAirRequest:
                 f"Unknown option of format argument: {format}. Available formats are: 'df', 'dict'")
 
     def get_stations(self, format: str = 'list', include_offline: bool = True,
-                     timeit=False, debugit=False):
+                     time=False, debug=False):
         """
         Provides devices information in various formats
 
@@ -279,14 +283,14 @@ class CityAirRequest:
             * 'raw' : returns pd.DataFrame including all info got from server, other params are ignored
         include_offline: bool, default True
            whether to include offline devices to the output
-        timeit: bool, default False
+        time: bool, default False
            whether to print how long it took to gather data
-        debugit: bool, default False
+        debug: bool, default False
            whether to print raw request and response data
         -------"""
         locations_data, stations_data, devices_data = self._make_request(f"MoApi2/GetMoItems", "Locations",
                                                                          "MoItems", "Devices",
-                                                                         timeit=timeit, debugit=debugit)
+                                                                         time=time, debugit=debug)
         locations = dict(zip([(data.get('LocationId')) for data in locations_data],
                              [data.get('Name') for data in locations_data]))
         for device_data in devices_data:
@@ -331,10 +335,11 @@ class CityAirRequest:
             raise ValueError(
                 f"Unknown type of format argument: {format}. Available formats are: 'list', 'df', 'dicts', 'raw'")
 
+    @add_progress_bar
     def get_station_data(self, station_id: int, start_date=None,
                          finish_date=datetime.datetime.now(),
-                         take_count: int = 1000, period: Period = Period.TWENTY_MINS,
-                         timeit=False, debugit=False):
+                         take_count: int = 1000, period: Period = Period.TWENTY_MINS, verbose=False,
+                         time=False, debug=False):
         """
         Provides data from the selected station
         Parameters
@@ -347,9 +352,11 @@ class CityAirRequest:
             count of packets which is requested from the server
         period: Period (enum), default cityair_api.Period.TWENTY_MINS
             period could be five mins, twenty mins, hour, day
-        timeit: bool, default False
+        verbose: bool, default True:
+            whether to show progress bar
+        time: bool, default False
             whether to print how long it took to gather data
-        debugit: bool, default False
+        debug: bool, default False
             whether to print raw request and response data
         -------"""
         filter_ = {'TakeCount': take_count,
@@ -362,7 +369,7 @@ class CityAirRequest:
         else:
             filter_['FilterType'] = 3
             filter_['SkipFromLast'] = 0
-        packets = self._make_request("MoApi2/GetMoPackets", 'Packets', Filter=filter_, timeit=timeit, debugit=debugit)
+        packets = self._make_request("MoApi2/GetMoPackets", 'Packets', Filter=filter_, time=time, debug=debug)
         df = pd.DataFrame.from_records(packets)
         records = []
         for packets in df['DataJson']:

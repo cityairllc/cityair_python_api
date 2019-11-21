@@ -31,12 +31,12 @@ class ServerException(CityAirException):
 
 
 class EmptyDataException(CityAirException):
-    def __init__(self, response: requests.models.Response = None, serial_number: str = None):
+    def __init__(self, response: requests.models.Response = None, item = None):
         message = f"No data for the request. Try changing query arguments, i.e. start_date or finish_date."
         if response:
             body = json.loads(response.request.body.decode('utf-8'))
             body.update(User='***', Pwd='***')
             message += f"\nurl: {response.url}\nrequest body: {body}\n"
-        if serial_number:
-            message = message.replace("request", f"{serial_number} device")
+        if item:
+            message = message.replace("request", f"{item}")
         super().__init__(message)
