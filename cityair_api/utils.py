@@ -13,9 +13,8 @@ TODO
 docstrings refactor
 
 """
-
-RIGHT_PARAMS_NAMES = {'FlagPs220': '220', 'RecvDate': 'receive_date',
-                      'SendDate': 'date', 'Temperature': 'T',
+RIGHT_PARAMS_NAMES = {'FlagPs220': '220', 'RecvDate': 'receive_date', 'Ps220': '220','GsmRssi': 'rssi',
+                      'SendDate': 'date', 'Temperature': 'T', 'BatLow': 'is_bat_low',
                       'Humidity': 'RH', 'Pressure': 'P',
                       'ChildDevices': 'children', 'DataDeliveryPeriodSec': 'delivery_period',
                       'Description': 'description',
@@ -29,10 +28,10 @@ RIGHT_PARAMS_NAMES = {'FlagPs220': '220', 'RecvDate': 'receive_date',
                       'ManualDeviceLinks': 'devices_manual', 'DeviceLink': 'devices_auto', 'GmtOffset': 'gmt_offset',
                       'DotItem': 'coordinates',
                       'Latitude': 'latitude', 'Longitude': 'longitude', 'LocationId': 'location',
-                      'GeoInfo': 'coordinates', 'DataAqi': 'AQI', 'GmtHour':'gmt_hour_diff', 'PublishOnMap': 'is_public', 'NameRu': 'name_ru'
+                      'GeoInfo': 'coordinates','Geo': 'coordinates', 'DataAqi': 'AQI', 'GmtHour':'gmt_hour_diff', 'PublishOnMap': 'is_public', 'NameRu': 'name_ru'
                       }
-USELESS_COLS = ['220', 'BatLow', 'receive_date', 'GeoInfo', 'Date', 'SendDate', 'latitude', 'longitude',
-                'description', 'coordinates',
+USELESS_COLS = ['220', 'BatLow', 'receive_date', 'GeoInfo','Geo', 'Date', 'SendDate', 'latitude', 'longitude',
+                'description', 'coordinates','rssi',
                 'FlagBatLowHasFailed', 'FlagPs220HasFailed', 'IsNotSaveData',
                 'ParentDeviceId', 'SourceType', 'tags', 'DataProviderId',
                 'IsDeleted', 'IsManualParamLinks', 'IsStartInterval1H', 'ManualPacketParamLinks', 'PacketId',
@@ -78,6 +77,7 @@ def to_date(date_string):
 
 def prep_df(df: pd.DataFrame, right_param_names: dict = RIGHT_PARAMS_NAMES, cols_to_drop: List[str] = USELESS_COLS,
             dicts_cols: List[str] = [], dropna: bool = True, index_col: str = None, cols_to_unpack: List[str] = []):
+
     res = df.copy()
     res.rename(right_param_names, axis=1, inplace=True)
 
@@ -97,8 +97,9 @@ def prep_df(df: pd.DataFrame, right_param_names: dict = RIGHT_PARAMS_NAMES, cols
         res.drop('is_offline', axis=1, inplace=True)
     except KeyError as e:
         pass
-    if index_col:
+    if index_col and index_col in df.columns:
         res.set_index(index_col, inplace=True)
+    res.rename(right_param_names, axis=1, inplace=True)
     res = res.drop(cols_to_drop, axis=1, errors='ignore')
     return res
 

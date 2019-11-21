@@ -6,8 +6,8 @@ import json
 from sys import getsizeof
 from collections import OrderedDict
 from enum import Enum
-from cityair_api.utils import to_date, timeit, debugit, prep_dicts, prep_df, USELESS_COLS, RIGHT_PARAMS_NAMES
-from cityair_api.exceptions import EmptyDataException, NoAccessException, ServerException, CityAirException
+from utils import to_date, timeit, unpack_cols, debugit, prep_dicts, prep_df, USELESS_COLS, RIGHT_PARAMS_NAMES
+from exceptions import EmptyDataException, NoAccessException, ServerException, CityAirException
 from collections.abc import Iterable
 
 
@@ -24,7 +24,7 @@ DEFAULT_HOST = "https://cityair.io/backend-api/request-v2.php?map="
 class CityAirRequest:
     f"""
     Object for accessing data of CityAir.io project
-    
+
     Parameters
     ----------
     user, psw:  str
@@ -214,10 +214,11 @@ class CityAirRequest:
                                      debugit=debugit)
         df = pd.DataFrame.from_records(packets)
 
-        df.drop(['Data', 'PacketId'], 1, inplace=True, errors='ignore')
+        df = unpack_cols(df, ['ServiceData'])
+        df.drop(['DataJson', 'PacketId'], 1, inplace=True, errors='ignore')
         records = []
-        for packets in df['DataJson']:
-            packets = json.loads(packets)
+        for packets in df['Data']:
+            #  packets = json.loads(packets)
             records.append(dict(zip(
                 [f"value {packet['D']} {packet['VT']}" for packet in packets],
                 [packet['V'] for packet in packets])))
@@ -233,15 +234,16 @@ class CityAirRequest:
                 try:
                     res[serial] = pd.concat([res[serial], series_to_append], axis=1)
                 except KeyError:
-                    res[serial] = pd.concat([df['SendDate'], series_to_append], axis=1)
+                    res[serial] = pd.concat([df['date'], series_to_append], axis=1)
+                    # res[serial] = series_to_append.to_frame()
             try:
                 res[serial_number] = pd.concat(
-                    [df.drop(values_cols + ['DataJson', 'SendDate'], axis=1), res[serial_number]], axis=1)
+                    [df.drop(values_cols + ['Data', 'SendDate'], axis=1, errors='ignore'), res[serial_number]], axis=1)
             except KeyError:
-                res[serial_number] = df.drop(values_cols + ['DataJson'], axis=1)
+                res[serial_number] = df.drop(values_cols + ['Date'], axis=1)
             for device in res:
                 res[device] = prep_df(res[device], index_col='date', cols_to_unpack=['coordinates'],
-                         cols_to_drop=[] if all_cols else USELESS_COLS)
+                                      cols_to_drop=[] if all_cols else USELESS_COLS)
             return res
         else:
             value_types_count = Counter(list(
@@ -255,7 +257,8 @@ class CityAirRequest:
                 else:
                     proper_col_name = f"{value_name}"
                 df.rename(columns={col: proper_col_name}, inplace=True)
-            df = prep_df(df.drop(['DataJson'], axis=1), index_col='date', cols_to_unpack=['coordinates'],
+            df = prep_df(df.drop(['Data'], axis=1), right_param_names=RIGHT_PARAMS_NAMES,
+                         index_col='date', cols_to_unpack=['coordinates'],
                          cols_to_drop=[] if all_cols else USELESS_COLS)
             return df
 
