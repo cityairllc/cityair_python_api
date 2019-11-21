@@ -4,5 +4,4 @@ setup.py
 cityair_api/__init__.py
 cityair_api/exceptions.py
 cityair_api/request.py
-cityair_api/test.py
 cityair_api/utils.py
