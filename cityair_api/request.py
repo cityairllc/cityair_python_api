@@ -42,6 +42,8 @@ class CityAirRequest:
         self.timeout = kwargs.get('timeout', 100)
         self.user = user
         self.psw = psw
+        print('dsa')
+
 
     @cached_property
     def _device_by_serial(self):

@@ -93,8 +93,8 @@ def add_progress_bar(method):
                         res[key] = pd.concat([res.get(key, pd.DataFrame()), df[key]], sort=False)
                     start_date = max([res[key].index[-1] for key in res])
             except EmptyDataException:
-                start_date += datetime.timedelta(days=1)
-            kwargs.update(start_date=start_date)
+                start_date += datetime.timedelta(days=2)
+            kwargs.update(start_date=start_date + datetime.timedelta(seconds=30))
             bar.update(bar.max_value - (finish_date - start_date).total_seconds() / PROGRESS_SCALER)
         size = len(res) if isinstance(res, pd.DataFrame) else max(map(len, res.values()))
         print(f'{datetime.datetime.now()}\tfinished acquiring {args[1]} data of size {size}')
