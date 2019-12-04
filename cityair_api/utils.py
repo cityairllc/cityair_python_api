@@ -46,7 +46,7 @@ USELESS_COLS = ['220', 'BatLow', 'receive_date', 'GeoInfo', 'Geo', 'Date', 'Send
                 'BounceNorth', 'BounceSouth', 'BounceEast', 'BounceWest',
                 'GmtHour', 'LocationUrl', 'DistributionSummary', 'SortRank']
 
-MAIN_DEVICE_PARAMS = ['serial_number', 'name', 'check_infos', 'software', 'stations', 'children']
+MAIN_DEVICE_PARAMS = ['serial_number', 'name', 'software', 'stations', 'children', 'check_infos']
 
 MAIN_STATION_PARAMS = ['id', 'name', 'name_ru', 'location', 'gmt_offset', 'devices']
 
@@ -132,7 +132,7 @@ def prep_dicts(dicts, newkeys, keys_to_drop, dropna=True):
             if 'date' in new_key:
                 value = to_date(value)
             new_dict[new_key] = value
-        res.append(OrderedDict(sorted(new_dict.items(), key=lambda item: getsizeof(item[1]))))
+        res.append(new_dict)
     return res
 
 

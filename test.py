@@ -5,7 +5,7 @@ TAKE_COUNT = 5
 START_DATE = '19.10.2019'
 FINISH_DATE = '21.10.2019'
 
-r = CityAirRequest('ek', 'Oracle23')
+r = CityAirRequest('**', '**')
 
 devices = r.get_devices(include_children=True)
 print('\n\n----------------------devices as list-------------------')

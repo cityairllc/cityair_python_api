@@ -43,7 +43,6 @@ class CityAirRequest:
         self.user = user
         self.psw = psw
 
-
     @cached_property
     def _device_by_serial(self):
         devices_data = self._make_request(f"DevicesApi2/GetDevices", "Devices")
@@ -184,10 +183,9 @@ class CityAirRequest:
         if format == 'dicts':
             res = []
             for serial_number, row in df.iterrows():
-                row = dict(row)
-                single_dict = {param: row.pop(param, None) for param in MAIN_DEVICE_PARAMS}
-                single_dict['misc'] = OrderedDict(sorted(row.items(), key=lambda item: getsizeof(item[1])))
-                res.append(OrderedDict(sorted(single_dict.items(), key=lambda item: getsizeof(item[1]))))
+                single_dict = {param: row.pop(param) for param in MAIN_DEVICE_PARAMS}
+                single_dict.update(misc=dict(row))
+                res.append(single_dict)
             return res
         elif format == 'list':
             return list(df.index)
@@ -262,7 +260,7 @@ class CityAirRequest:
             for col in values_cols:
                 _, device_id, value_id = col.split(' ')
                 serial = self._device_by_id[int(device_id)]
-                value_name = self._value_types[int(value_id)]
+                value_name = self._device_value_types[int(value_id)]
                 series_to_append = df[col].rename(value_name)
                 try:
                     res[serial] = pd.concat([res[serial], series_to_append], axis=1)
@@ -343,9 +341,7 @@ class CityAirRequest:
         if format == 'dicts':
             res = []
             for _, row in df.reset_index().iterrows():
-                res.append(OrderedDict(
-                    zip(MAIN_STATION_PARAMS, [row.get(param) for param in MAIN_STATION_PARAMS])
-                ))
+                res.append({param: row.get(param) for param in MAIN_STATION_PARAMS})
             return res
         elif format == 'list':
             return list(df.index)
