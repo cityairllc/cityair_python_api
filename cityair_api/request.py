@@ -7,7 +7,7 @@ from sys import getsizeof
 from collections import OrderedDict
 from enum import Enum
 from .utils import to_date, timeit, add_progress_bar, unpack_cols, debugit, prep_dicts, prep_df, USELESS_COLS, \
-    RIGHT_PARAMS_NAMES
+    RIGHT_PARAMS_NAMES, MAIN_DEVICE_PARAMS, MAIN_STATION_PARAMS
 from .exceptions import EmptyDataException, NoAccessException, ServerException, CityAirException
 from collections.abc import Iterable
 from cached_property import cached_property
@@ -177,7 +177,7 @@ class CityAirRequest:
         if include_children:
             df = df_with_children
         df.set_index('serial_number', inplace=True, drop=False)
-        df['stations'] = pd.Series(getattr(self, 'stations_by_device', None))
+        df['stations'] = pd.Series(getattr(self, '_stations_by_device', None))
         df['children'].apply(
             lambda children_info: [child_info.pop('id') for child_info in children_info] if isinstance(children_info,
                                                                                                        Iterable) else [])
@@ -185,10 +185,8 @@ class CityAirRequest:
             res = []
             for serial_number, row in df.iterrows():
                 row = dict(row)
-                main_params = ['serial_number', 'name', 'children', 'check_infos']
-                single_dict = dict(zip(main_params, [row.pop(param, None) for param in main_params]))
+                single_dict = {param: row.pop(param, None) for param in MAIN_DEVICE_PARAMS}
                 single_dict['misc'] = OrderedDict(sorted(row.items(), key=lambda item: getsizeof(item[1])))
-                single_dict.update({'stations': self._stations_by_device.get(serial_number)})
                 res.append(OrderedDict(sorted(single_dict.items(), key=lambda item: getsizeof(item[1]))))
             return res
         elif format == 'list':
@@ -344,14 +342,9 @@ class CityAirRequest:
             df = df[df['is_online']]
         if format == 'dicts':
             res = []
-            for id_, row in df.iterrows():
-                row = dict(row)
+            for _, row in df.reset_index().iterrows():
                 res.append(OrderedDict(
-                    [(df.index.name, id_),
-                     ('name', row.get('publish_name') or row.get('name')),
-                     ('name_ru', row.get('publish_name_ru'))]
-                    +
-                    [(param, row.get(param)) for param in ('location', 'gmt_offset', 'devices',)]
+                    zip(MAIN_STATION_PARAMS, [row.get(param) for param in MAIN_STATION_PARAMS])
                 ))
             return res
         elif format == 'list':

@@ -30,7 +30,7 @@ RIGHT_PARAMS_NAMES = {'FlagPs220': '220', 'RecvDate': 'receive_date', 'Ps220': '
                       'FlagBatLow': 'is_bat_low', 'DeviceId': 'id',
                       'IsOffline': 'is_offline', 'SerialNumber': 'serial_number',
                       'SoftwareVersion': 'software', 'SourceType': 'type', 'TagIds': 'tags', 'MoId': 'id',
-                      'Name': 'name', 'PublishName': 'publish_name', 'PublishNameRu': 'publish_name_ru',
+                      'Name': 'name', 'PublishName': 'internal_name', 'PublishNameRu': 'name_ru',
                       'ManualDeviceLinks': 'devices_manual', 'DeviceLink': 'devices_auto', 'GmtOffset': 'gmt_offset',
                       'DotItem': 'coordinates',
                       'Latitude': 'latitude', 'Longitude': 'longitude', 'LocationId': 'location',
@@ -44,7 +44,11 @@ USELESS_COLS = ['220', 'BatLow', 'receive_date', 'GeoInfo', 'Geo', 'Date', 'Send
                 'IsDeleted', 'IsManualParamLinks', 'IsStartInterval1H', 'ManualPacketParamLinks', 'PacketId',
                 'Timestamp', 'is_bat_low', 'BounceNorth', 'BounceSouth', 'BounceEast', 'BounceWest', 'CountryId',
                 'BounceNorth', 'BounceSouth', 'BounceEast', 'BounceWest',
-                'GmtHour', 'LocationUrl', 'DistributionSummary','SortRank']
+                'GmtHour', 'LocationUrl', 'DistributionSummary', 'SortRank']
+
+MAIN_DEVICE_PARAMS = ['serial_number', 'name', 'check_infos', 'software', 'stations', 'children']
+
+MAIN_STATION_PARAMS = ['id', 'name', 'name_ru', 'location', 'gmt_offset', 'devices']
 
 
 def add_progress_bar(method):
@@ -66,7 +70,7 @@ def add_progress_bar(method):
         finish_date = to_date(kwargs.get('finish_date', datetime.datetime.utcnow().replace(tzinfo=pytz.utc)))
         kwargs.update(take_count=kwargs.get('take_count', DEFAULT_TAKE_COUNT))
         bar = progressbar.ProgressBar(max_value=(finish_date - start_date).total_seconds() / PROGRESS_SCALER,
-                                    #  redirect_stdout=True,
+                                      #  redirect_stdout=True,
                                       widgets=[
                                           f"{args[1]}",
                                           ': ',
@@ -142,7 +146,7 @@ def to_date(date_string):
 def prep_df(df: pd.DataFrame, right_param_names: dict = RIGHT_PARAMS_NAMES, cols_to_drop: List[str] = USELESS_COLS,
             dicts_cols: List[str] = [], dropna: bool = True, index_col: str = None, cols_to_unpack: List[str] = []):
     res = df.copy()
-    res.dropna(how='all', axis = 0)
+    res.dropna(how='all', axis=0)
     res.rename(right_param_names, axis=1, inplace=True)
 
     for col in dicts_cols:
@@ -207,4 +211,5 @@ def debugit(method):
         if to_debug:
             print(f"response: {result}")
         return result
+
     return print_request_response
