@@ -57,11 +57,11 @@ def add_progress_bar(method):
 
     @wraps(method)
     def progressed(*args, **kwargs):
-        verbose = kwargs.pop('verbose', False)
+        verbose = kwargs.pop('verbose', True)
         start_date = to_date(kwargs.get('start_date'))
         time = kwargs.get('time', False)
         debug = kwargs.get('debug', False)
-        if debug or time or verbose or (not start_date):
+        if debug or time or (not verbose) or (not start_date):
             return method(*args, **kwargs)
         finish_date = to_date(kwargs.get('finish_date', datetime.datetime.utcnow().replace(tzinfo=pytz.utc)))
         kwargs.update(take_count=kwargs.get('take_count', DEFAULT_TAKE_COUNT))

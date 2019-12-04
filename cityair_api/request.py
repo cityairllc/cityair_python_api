@@ -51,10 +51,18 @@ class CityAirRequest:
                         [data.get('DeviceId') for data in devices_data]))
 
     @cached_property
-    def _value_types(self):
+    def _device_value_types(self):
         value_types_data = self._make_request(f"DevicesApi2/GetDevices", "PacketsValueTypes")
         return dict(zip([(data.get('ValueType')) for data in value_types_data],
                         [data.get('TypeName') for data in value_types_data]))
+
+    @cached_property
+    def _stations_value_types(self):
+        value_types_data = self._make_request(f"MoApi2/GetMoItems", "PacketValueTypes")
+        return dict(zip(
+            [info['ValueType'] for info in value_types_data],
+            [info['TypeName'] for info in value_types_data]
+        ))
 
     @cached_property
     def _device_by_id(self):
@@ -195,7 +203,7 @@ class CityAirRequest:
     def get_device_data(self, serial_number: str, start_date=None,
                         finish_date=datetime.datetime.now(),
                         take_count: int = 500, all_cols=False,
-                        format: str = 'df', verbose=False,
+                        format: str = 'df', verbose=True,
                         time=False, debug=False):
         """
         Provides data from the selected device
@@ -278,7 +286,7 @@ class CityAirRequest:
             for col in list(filter(lambda col: col.startswith('value'), df.columns)):
                 _, device_id, value_id = col.split(' ')
                 serial = self._device_by_id[int(device_id)]
-                value_name = self._value_types[int(value_id)]
+                value_name = self._device_value_types[int(value_id)]
                 if value_types_count[value_id] > 1:
                     proper_col_name = f"{value_name} [{serial}]"
                 else:
@@ -313,7 +321,7 @@ class CityAirRequest:
         -------"""
         locations_data, stations_data, devices_data = self._make_request(f"MoApi2/GetMoItems", "Locations",
                                                                          "MoItems", "Devices",
-                                                                         time=time, debugit=debug)
+                                                                         time=time, debug=debug)
         locations = dict(zip([(data.get('LocationId')) for data in locations_data],
                              [data.get('Name') for data in locations_data]))
         for device_data in devices_data:
@@ -357,7 +365,7 @@ class CityAirRequest:
     @add_progress_bar
     def get_station_data(self, station_id: int, start_date=None,
                          finish_date=datetime.datetime.now(),
-                         take_count: int = 1000, period: Period = Period.TWENTY_MINS, verbose=False,
+                         take_count: int = 1000, period: Period = Period.TWENTY_MINS, verbose=True,
                          time=False, debug=False):
         """
         Provides data from the selected station
@@ -393,7 +401,7 @@ class CityAirRequest:
         records = []
         for packets in df['DataJson']:
             packets = json.loads(packets)
-            records.append(dict(zip([self._value_types.get(packet['Id'], 'undefined') for packet in packets],
+            records.append(dict(zip([self._stations_value_types.get(packet['Id'], 'undefined') for packet in packets],
                                     [packet['Sum'] / packet['Cnt'] for packet in packets])))
         df = df.assign(**pd.DataFrame.from_records(records))
         df = prep_df(df.drop(['DataJson'], axis=1), index_col='date')
