@@ -95,9 +95,9 @@ class CityAirRequest:
             for device in device_list:
                 try:
                     if station not in res[device]:
-                        res[device].append(station)
+                        res[device].append(station.copy())
                 except KeyError:
-                    res[device] = [station]
+                    res[device] = [station.copy()]
         return res
 
     @debugit
@@ -176,7 +176,7 @@ class CityAirRequest:
         if include_children:
             df = df_with_children
         df.set_index('serial_number', inplace=True, drop=False)
-        df['stations'] = pd.Series(getattr(self, '_stations_by_device', None))
+        df['stations'] = pd.Series(getattr(self, '_stations_by_device', []))
         df['children'].apply(
             lambda children_info: [child_info.pop('id') for child_info in children_info] if isinstance(children_info,
                                                                                                        Iterable) else [])
@@ -197,7 +197,7 @@ class CityAirRequest:
 
     @add_progress_bar
     def get_device_data(self, serial_number: str, start_date=None,
-                        finish_date=datetime.datetime.now(),
+                        finish_date=None,
                         take_count: int = 500, all_cols=False,
                         format: str = 'df', verbose=True,
                         time=False, debug=False):
@@ -237,7 +237,8 @@ class CityAirRequest:
         if start_date:
             filter_['FilterType'] = 1
             filter_['TimeBegin'] = to_date(start_date).isoformat()
-            filter_['TimeEnd'] = to_date(finish_date).isoformat()
+            filter_['TimeEnd'] = to_date(
+                finish_date).isoformat() if finish_date else datetime.datetime.now().isoformat()
         else:
             filter_['FilterType'] = 3
             filter_['Skip'] = 0
@@ -381,7 +382,8 @@ class CityAirRequest:
         if start_date:
             filter_['FilterType'] = 1
             filter_['BeginTime'] = to_date(start_date).isoformat()
-            filter_['EndTime'] = to_date(finish_date).isoformat()
+            filter_['EndTime'] = to_date(
+                finish_date).isoformat() if finish_date else datetime.datetime.now().isoformat()
         else:
             filter_['FilterType'] = 3
             filter_['SkipFromLast'] = 0
