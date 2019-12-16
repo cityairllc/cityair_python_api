@@ -200,7 +200,7 @@ class CityAirRequest:
                         finish_date=None,
                         take_count: int = 500, all_cols=False,
                         format: str = 'df', verbose=True,
-                        time=False, debug=False):
+                        time=False, debug=False, last_packet_id=None):
         """
         Provides data from the selected device
 
@@ -234,6 +234,9 @@ class CityAirRequest:
             raise NoAccessException(serial_number)
         filter_ = {'Take': take_count,
                    'DeviceId': device_id}
+        if last_packet_id:
+            filter_['FilterType'] = 2
+            filter_['LastPacketId'] = ?
         if start_date:
             filter_['FilterType'] = 1
             filter_['TimeBegin'] = to_date(start_date).isoformat()
@@ -247,7 +250,7 @@ class CityAirRequest:
         df = pd.DataFrame.from_records(packets)
 
         df = unpack_cols(df, ['ServiceData'])
-        df.drop(['DataJson', 'PacketId'], 1, inplace=True, errors='ignore')
+        df.drop(['DataJson'], 1, inplace=True, errors='ignore')
         records = []
         for packets in df['Data']:
             #  packets = json.loads(packets)

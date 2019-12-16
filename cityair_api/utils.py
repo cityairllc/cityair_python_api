@@ -44,7 +44,7 @@ USELESS_COLS = ['220', 'BatLow', 'receive_date', 'GeoInfo', 'Geo', 'Date', 'Send
                 'IsDeleted', 'IsManualParamLinks', 'IsStartInterval1H', 'ManualPacketParamLinks', 'PacketId',
                 'Timestamp', 'is_bat_low', 'BounceNorth', 'BounceSouth', 'BounceEast', 'BounceWest', 'CountryId',
                 'BounceNorth', 'BounceSouth', 'BounceEast', 'BounceWest',
-                'GmtHour', 'LocationUrl', 'DistributionSummary', 'SortRank']
+                'GmtHour', 'LocationUrl', 'DistributionSummary', 'SortRank', 'PacketId']
 
 MAIN_DEVICE_PARAMS = ['serial_number', 'name', 'software', 'stations', 'children', 'check_infos']
 
