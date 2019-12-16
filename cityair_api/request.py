@@ -328,12 +328,13 @@ class CityAirRequest:
             return df
         df = prep_df(df, index_col='id')
 
-        df['devices'] = df['devices_auto'].apply(
-            lambda link: self._device_and_children_by_id.get(link.get('DeviceId')) if link else [])
+        df['devices'] = df['devices_auto'].apply(lambda link: self._device_and_children_by_id.get(link.get('DeviceId')) if link else [])
 
         df['devices'] += df['devices_manual'].apply(
             lambda links: [self._device_by_id.get(link.get('DeviceId')) for link in
                            links] if links else [])
+        df['devices'] =  df['devices'].apply(lambda x: x if isinstance(x, list) else [])
+
         df.drop(['devices_auto', 'devices_manual'], axis=1, inplace=True)
         df['location'] = df['location'].apply(lambda id_: locations.get(id_, None) if id_ else None)
 
