@@ -236,8 +236,8 @@ class CityAirRequest:
                    'DeviceId': device_id}
         if last_packet_id:
             filter_['FilterType'] = 2
-            filter_['LastPacketId'] = ?
-        if start_date:
+            filter_['LastPacketId'] = last_packet_id
+        elif start_date:
             filter_['FilterType'] = 1
             filter_['TimeBegin'] = to_date(start_date).isoformat()
             filter_['TimeEnd'] = to_date(

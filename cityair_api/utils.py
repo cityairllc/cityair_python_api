@@ -35,16 +35,16 @@ RIGHT_PARAMS_NAMES = {'FlagPs220': '220', 'RecvDate': 'receive_date', 'Ps220': '
                       'DotItem': 'coordinates',
                       'Latitude': 'latitude', 'Longitude': 'longitude', 'LocationId': 'location',
                       'GeoInfo': 'coordinates', 'Geo': 'coordinates', 'DataAqi': 'AQI', 'GmtHour': 'gmt_hour_diff',
-                      'PublishOnMap': 'is_public', 'NameRu': 'name_ru'
+                      'PublishOnMap': 'is_public', 'NameRu': 'name_ru', 'PacketId': 'packet_id'
                       }
 USELESS_COLS = ['220', 'BatLow', 'receive_date', 'GeoInfo', 'Geo', 'Date', 'SendDate', 'latitude', 'longitude',
                 'description', 'coordinates', 'rssi',
                 'FlagBatLowHasFailed', 'FlagPs220HasFailed', 'IsNotSaveData',
                 'ParentDeviceId', 'SourceType', 'tags', 'DataProviderId',
-                'IsDeleted', 'IsManualParamLinks', 'IsStartInterval1H', 'ManualPacketParamLinks', 'PacketId',
+                'IsDeleted', 'IsManualParamLinks', 'IsStartInterval1H', 'ManualPacketParamLinks',
                 'Timestamp', 'is_bat_low', 'BounceNorth', 'BounceSouth', 'BounceEast', 'BounceWest', 'CountryId',
                 'BounceNorth', 'BounceSouth', 'BounceEast', 'BounceWest',
-                'GmtHour', 'LocationUrl', 'DistributionSummary', 'SortRank', 'PacketId']
+                'GmtHour', 'LocationUrl', 'DistributionSummary', 'SortRank', 'PacketId', 'packet_id']
 
 MAIN_DEVICE_PARAMS = ['serial_number', 'name', 'software', 'stations', 'children', 'check_infos']
 
@@ -206,7 +206,7 @@ def debugit(method):
         body = {"User": getattr(obj, 'user'), "Pwd": getattr(obj, 'psw'), **kwargs}
         url = f"{getattr(obj, 'host_url', None)}/{args[1]}"
         if to_debug:
-            print(f"url: {url}\nrequest_body")
+            print(f"url: {url}\nrequest_body: {body}")
         result = method(*args, **kwargs)
         if to_debug:
             print(f"response: {result}")
