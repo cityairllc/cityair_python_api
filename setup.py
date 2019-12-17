@@ -2,7 +2,7 @@ from distutils.core import setup
 
 setup(
     name='cityair-api',
-    version='0.2.39',
+    version='0.2.42',
     packages=['cityair_api'],
     url='https://github.com/cityairltd/cityair_python_api',
     license='Apache 2.0',
@@ -14,3 +14,4 @@ setup(
     install_requires=[
         'pandas', 'requests', 'progressbar2', 'cached-property'],
 )
+

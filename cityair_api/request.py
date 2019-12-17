@@ -183,8 +183,9 @@ class CityAirRequest:
         if format == 'dicts':
             res = []
             for serial_number, row in df.iterrows():
-                single_dict = {param: row.pop(param) for param in MAIN_DEVICE_PARAMS}
-                single_dict.update(misc=dict(row))
+                row = dict(row)
+                single_dict = {param: row.pop(param, None) for param in MAIN_DEVICE_PARAMS}
+                single_dict.update(misc=row)
                 res.append(single_dict)
             return res
         elif format == 'list':
@@ -331,15 +332,12 @@ class CityAirRequest:
         df = pd.DataFrame.from_records(stations_data)
         if format == 'raw':
             return df
-        df = prep_df(df, index_col='id', dropna=False)
-
+        df = prep_df(df, index_col='id', dropna=False, cols_to_unpack=['coordinates'])
         df['devices'] = df['devices_auto'].apply(lambda link: self._device_and_children_by_id.get(link.get('DeviceId')) if link else [])
-
         df['devices'] += df['devices_manual'].apply(
             lambda links: [self._device_by_id.get(link.get('DeviceId')) for link in
                            links] if links else [])
         df['devices'] =  df['devices'].apply(lambda x: x if isinstance(x, list) else [])
-
         df.drop(['devices_auto', 'devices_manual'], axis=1, inplace=True)
         df['location'] = df['location'].apply(lambda id_: locations.get(id_, None) if id_ else None)
 

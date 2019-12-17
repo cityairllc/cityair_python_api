@@ -37,18 +37,18 @@ RIGHT_PARAMS_NAMES = {'FlagPs220': '220', 'RecvDate': 'receive_date', 'Ps220': '
                       'GeoInfo': 'coordinates', 'Geo': 'coordinates', 'DataAqi': 'AQI', 'GmtHour': 'gmt_hour_diff',
                       'PublishOnMap': 'is_public', 'NameRu': 'name_ru', 'PacketId': 'packet_id'
                       }
-USELESS_COLS = ['220', 'BatLow', 'receive_date', 'GeoInfo', 'Geo', 'Date', 'SendDate', 'latitude', 'longitude',
+USELESS_COLS = ['220', 'BatLow', 'receive_date', 'GeoInfo', 'Geo', 'Date', 'SendDate', #'latitude', 'longitude',
+                'ResetMoData',
                 'description', 'coordinates', 'rssi',
                 'FlagBatLowHasFailed', 'FlagPs220HasFailed', 'IsNotSaveData',
                 'ParentDeviceId', 'SourceType', 'tags', 'DataProviderId',
                 'IsDeleted', 'IsManualParamLinks', 'IsStartInterval1H', 'ManualPacketParamLinks',
                 'Timestamp', 'is_bat_low', 'BounceNorth', 'BounceSouth', 'BounceEast', 'BounceWest', 'CountryId',
                 'BounceNorth', 'BounceSouth', 'BounceEast', 'BounceWest',
-                'GmtHour', 'LocationUrl', 'DistributionSummary', 'SortRank', 'PacketId', 'packet_id']
+                'GmtHour', 'LocationUrl', 'DistributionSummary', 'SortRank', 'PacketId', 'packet_id', 'Pcf','Scf']
 
 MAIN_DEVICE_PARAMS = ['serial_number', 'name', 'software', 'stations', 'children', 'check_infos']
-
-MAIN_STATION_PARAMS = ['id', 'name', 'name_ru', 'location', 'gmt_offset', 'devices']
+MAIN_STATION_PARAMS = ['id', 'name', 'name_ru', 'location', 'gmt_offset', 'devices', 'latitude', 'longitude']
 
 
 def add_progress_bar(method):
