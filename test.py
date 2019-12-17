@@ -1,11 +1,12 @@
 from cityair_api import CityAirRequest
 import pandas as pd
+import getpass
 
 TAKE_COUNT = 5
 START_DATE = '19.10.2019'
 FINISH_DATE = '21.10.2019'
 
-r = CityAirRequest('**', '**')
+r = CityAirRequest(input('User: '), getpass.getpass(prompt='Password: ', stream=None))
 
 devices = r.get_devices(include_children=True)
 print('\n\n----------------------devices as list-------------------')
