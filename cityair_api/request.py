@@ -197,10 +197,10 @@ class CityAirRequest:
 
     @add_progress_bar
     def get_device_data(self, serial_number: str, start_date=None,
-                        finish_date=None,
+                        finish_date=None, last_packet_id=None,
                         take_count: int = 500, all_cols=False,
                         format: str = 'df', verbose=True,
-                        time=False, debug=False, last_packet_id=None):
+                        time=False, debug=False):
         """
         Provides data from the selected device
 
@@ -210,6 +210,8 @@ class CityAirRequest:
             serial_number of the device
         start_date, finish_date: str or datetime.datetime
             dates on which data is being queried
+        last_packet_id: int, default None
+            if passed, packets will be queried starting from this packet_id
         take_count: int, default 1000
             count of packets which is requested from the server
         all_cols: bool, default False
