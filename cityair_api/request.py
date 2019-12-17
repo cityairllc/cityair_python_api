@@ -331,7 +331,7 @@ class CityAirRequest:
         df = pd.DataFrame.from_records(stations_data)
         if format == 'raw':
             return df
-        df = prep_df(df, index_col='id')
+        df = prep_df(df, index_col='id', dropna=False)
 
         df['devices'] = df['devices_auto'].apply(lambda link: self._device_and_children_by_id.get(link.get('DeviceId')) if link else [])
 
