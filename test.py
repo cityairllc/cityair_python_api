@@ -2,7 +2,7 @@ from cityair_api import CityAirRequest
 import pandas as pd
 import getpass
 
-TAKE_COUNT = 5
+TAKE_COUNT = 10
 START_DATE = '19.10.2019'
 FINISH_DATE = '21.10.2019'
 
