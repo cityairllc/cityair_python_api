@@ -6,7 +6,7 @@ enjoy and feel free to leave a feedback at feedback@cityair.ru
 
 Installing
 ^^^^^^^^^^^^^^^^^^^^^
-the last available version is 0.1.*. You can install or upgrade the stable cityair-api version with: ::
+the last available version is 0.2.*. You can install or upgrade the stable cityair-api version with: ::
 
     $ pip install cityair-api -U
 
@@ -26,29 +26,25 @@ We highly recommend to use stations API. First you may want to get the stations 
 
 then you can get the data collected by the stations. Important arguments are:
 
-    - start_date, finish_date - may be in datetime or string formats
-    - period is time resolution and may be '5min', '20min', '1hr','24hr' 
+    - start_date, finish_date - may be in datetime or string formats. if not passed - the last packets are fetched if quantity of packets_count
+    - period is time resolution and may be 5 mins, 20 min, 1 hour or day - you should pass Period.ENUM
 
 
 ::
 
-    df = r.get_station_data(stations.index[0])
+    df = r.get_station_data(stations[0], Period.HOUR)
 
-... or by multiple stations: ::
 
-   df = r.get_stations_data(*stations.index, param = 'PM2.5')
-  
 Getting data directly from devices
 ******************************************
 Using this API you get raw data directly from measuring devices. This API is rather slow dealing with big datasets, so be prepeared :)
 
 The main steps are the same as with stations API: ::
 
-    devices = r.get_devices()    
+    serial_numbers = r.get_devices()
 
-afterward get data from single or multiple sources: ::
+afterwards get dataset: ::
 
-    df = r.get_device_data(device_serial_number)
-    df = r.get_devices_data(*devices, param='PM2.5')
+    df = r.get_device_data(serial_numbers[0])
 
 
