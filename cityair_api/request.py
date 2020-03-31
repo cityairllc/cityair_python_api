@@ -15,6 +15,7 @@ from .utils import (
     MAIN_DEVICE_PARAMS, MAIN_STATION_PARAMS, RIGHT_PARAMS_NAMES, USELESS_COLS,
     add_progress_bar, debugit, prep_df, prep_dicts, timeit, to_date,
     unpack_cols,
+    get_credentials,
 )
 
 
@@ -38,7 +39,7 @@ class CityAirRequest:
     Object for accessing data of CityAir.io project
     """
 
-    def __init__(self, user: str, psw: str, **kwargs):
+    def __init__(self, user: str = None, psw: str = None, **kwargs):
         """
         Parameters
         ----------
@@ -51,12 +52,16 @@ class CityAirRequest:
             timeout for the server request
         verify_ssl: bool, default True
             whether to verify SSL certificate
+        silent: bool, default False
+            whether
         """
         self.host_url = kwargs.get('host_url', DEFAULT_HOST)
         self.timeout = kwargs.get('timeout', 100)
         self.verify_ssl = kwargs.get('verify_ssl', True)
-        self.user = user
-        self.psw = psw
+        if user and psw:
+            self.user, self.psw = user, psw
+        else:
+            self.user, self.psw = get_credentials(kwargs.get("silent", False))
 
     @cached_property
     def _device_by_serial(self):

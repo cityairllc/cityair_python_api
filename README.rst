@@ -1,12 +1,12 @@
 Inroduction
 ^^^^^^^^^^^^^^^^^^^^^
-python package for getting CityAir.io data in a format of Pandas Dataframes for further proccessing.
+python package for getting CityAir.io data in the format of Pandas DataFrames for further processing.
 enjoy and feel free to leave a feedback at feedback@cityair.ru
 
 
 Installing
 ^^^^^^^^^^^^^^^^^^^^^
-the last available version is 0.2.*. You can install or upgrade the stable cityair-api version with: ::
+You can install the latest version with: ::
 
     $ pip install cityair-api -U
 
