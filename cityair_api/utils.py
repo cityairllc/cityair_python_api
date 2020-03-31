@@ -1,24 +1,16 @@
-import pandas as pd
 import datetime
-import time
 import sys
+import time
 from functools import wraps
 from typing import List
-from sys import getsizeof
-from collections import OrderedDict
-import pytz
-import datetime
-from functools import wraps
-import time
+
+import pandas as pd
 import progressbar
+import pytz
+
 from .exceptions import EmptyDataException
 
-"""re
-TODO
 
-docstrings refactor
-
-"""
 RIGHT_PARAMS_NAMES = {'FlagPs220': '220', 'RecvDate': 'receive_date', 'Ps220': '220', 'GsmRssi': 'rssi',
                       'SendDate': 'date', 'Temperature': 'T', 'BatLow': 'is_bat_low',
                       'Humidity': 'RH', 'Pressure': 'P',

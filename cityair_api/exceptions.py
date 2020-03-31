@@ -2,37 +2,50 @@ import requests
 import json
 
 
-"""
-TODO
-
-add docstrings
-
-"""
 class CityAirException(Exception):
     pass
 
 
 class NoAccessException(CityAirException):
+    """
+    raised when the requested device is not assigned to the user
+    """
+
     def __init__(self, serial_number: str):
-        message = f"Sorry, you don't have access to the device {serial_number}. Maybe you're trying to access child device (i.e. G1, G2, etc), you should request data from the main device"
+        message = (f"Sorry, you don't have access to the device "
+                   f"{serial_number}. Maybe you're trying to access "
+                   f"child device (i.e. G1, G2, etc), you should "
+                   f"request data from the main device")
         super().__init__(message)
 
 
 class ServerException(CityAirException):
+    """
+    unknown cityair backend exception
+    raised when request contains 'IsError'=True
+    """
+
     def __init__(self, response: requests.models.Response):
         body = json.loads(response.request.body.decode('utf-8'))
         body.update(User='***', Pwd='***')
-        message = f"Error while getting data:\nurl: {response.url}\nrequest body: {body}\n"
+        message = (f"Error while getting data:\nurl: "
+                   f"{response.url}\nrequest body: {body}\n")
         try:
-            message+= f"{response.json()['ErrorMessage']}:\n{response.json().get('ErrorMessageDetals')}"
+            message += (f"{response.json()['ErrorMessage']}:\n"
+                        f"{response.json().get('ErrorMessageDetals')}")
         except KeyError:
             message += str(response.json())
         super().__init__(message)
 
 
 class EmptyDataException(CityAirException):
-    def __init__(self, response: requests.models.Response = None, item = None):
-        message = f"No data for the request. Try changing query arguments, i.e. start_date or finish_date."
+    """
+    raised whe 'Result' field in response is empty
+    """
+
+    def __init__(self, response: requests.models.Response = None, item=None):
+        message = (f"No data for the request. Try changing query arguments, "
+                   f"i.e. start_date or finish_date.")
         if response:
             body = json.loads(response.request.body.decode('utf-8'))
             body.update(User='***', Pwd='***')
