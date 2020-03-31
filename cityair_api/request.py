@@ -492,3 +492,6 @@ class CityAirRequest:
             location_data['stations'] = stations_by_location.get(
                     location_data.get('name'))
         return locations_data
+
+
+CAR = CityAirRequest
