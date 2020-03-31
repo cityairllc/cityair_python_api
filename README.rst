@@ -37,7 +37,7 @@ then you can get the data collected by the stations. Important arguments are:
 
 Getting data directly from devices
 ******************************************
-Using this API you get raw data directly from measuring devices. This API is rather slow dealing with big datasets, so be prepeared :)
+Using this API you get raw data directly from measuring devices. This API is rather slow dealing with large datasets, so be prepeared :)
 
 The main steps are the same as with stations API: ::
 

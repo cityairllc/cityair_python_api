@@ -34,23 +34,27 @@ DEFAULT_HOST = "https://cityair.io/backend-api/request-v2.php?map="
 
 
 class CityAirRequest:
-    f"""
+    """
     Object for accessing data of CityAir.io project
-
-    Parameters
-    ----------
-    user, psw:  str
-        authentication information
-    host_url: str, default {DEFAULT_HOST}
-        url of the CityAir API, you may want to change it in case using a 
-        StandAloneServer
-    timeout: int, default 100
-        timeout for the server request
-    -------"""
+    """
 
     def __init__(self, user: str, psw: str, **kwargs):
+        """
+        Parameters
+        ----------
+        user, psw:  str
+            authentication information
+        host_url: str, default {DEFAULT_HOST}
+            url of the CityAir API, you may want to change it in case using a
+            StandAloneServer
+        timeout: int, default 100
+            timeout for the server request
+        verify_ssl: bool, default True
+            whether to verify SSL certificate
+        """
         self.host_url = kwargs.get('host_url', DEFAULT_HOST)
         self.timeout = kwargs.get('timeout', 100)
+        self.verify_ssl = kwargs.get('verify_ssl', True)
         self.user = user
         self.psw = psw
 
@@ -132,7 +136,8 @@ class CityAirRequest:
         body = {"User": getattr(self, 'user'), "Pwd": getattr(self, 'psw'),
                 **kwargs}
         url = f"{self.host_url}/{method_url}"
-        response = requests.post(url, json=body, timeout=self.timeout)
+        response = requests.post(url, json=body, timeout=self.timeout,
+                                 verify=self.verify_ssl)
         try:
             response.raise_for_status()
         except requests.exceptions.HTTPError as e:
