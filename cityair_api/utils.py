@@ -2,6 +2,7 @@ import datetime
 import getpass
 import logging
 import os
+import re
 import sys
 import time
 from functools import wraps
@@ -11,7 +12,8 @@ import pandas as pd
 import progressbar
 import pytz
 
-from cityair_api.settings import LOGIN_VAR_NAME, PSW_VAR_NAME
+from cityair_api.settings import CHECKINFO_PARSE_PATTERN, LOGIN_VAR_NAME, \
+    PSW_VAR_NAME
 from .exceptions import EmptyDataException
 
 RIGHT_PARAMS_NAMES = {'FlagPs220': '220',
@@ -74,8 +76,16 @@ MAIN_STATION_PARAMS = ['id', 'name', 'name_ru', 'location', 'gmt_offset',
 def get_credentials(silent=False) -> Tuple[str, str]:
     """
     extracting login and password from environment variables
-    :param silent: whether to prompt input for login and password
-    :return: login and password
+
+    Parameters
+    ----------
+    silent: bool, default False
+        whether to prompt input for login and passwordt
+
+    Returns
+    -------
+    login and password
+
     """
     try:
         login = os.environ[LOGIN_VAR_NAME]
@@ -189,7 +199,23 @@ def prep_dicts(dicts, newkeys, keys_to_drop, dropna=True):
     return res
 
 
+def parse_checkinfo(msg :str) -> List[dict]:
+    parsed_checkinfo = []
+    parse_re = re.compile(CHECKINFO_PARSE_PATTERN)
+    infos = parse_re.findall(msg.replace(", ", ","))
+    for info in infos:
+        module, status, count, details = info.split(',')
+        parsed_checkinfo.append(dict(
+            module=module,
+            has_error=False if status == 'ok' else True,
+            errors_count=int(count),
+            details=str(details).replace("\"", "")))
+    return parsed_checkinfo
+
+
 def to_date(date_string):
+    if not date_string:
+        return None
     if isinstance(date_string, datetime.datetime):
         return date_string
     else:
