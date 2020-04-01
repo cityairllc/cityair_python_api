@@ -1,5 +1,13 @@
-import requests
 import json
+
+import requests
+
+
+
+
+def anonymize_request(body: dict) -> dict:
+    body.copy().update(User='***', Pwd='***')
+    return body
 
 
 class CityAirException(Exception):
@@ -47,8 +55,8 @@ class EmptyDataException(CityAirException):
         message = (f"No data for the request. Try changing query arguments, "
                    f"i.e. start_date or finish_date.")
         if response:
-            body = json.loads(response.request.body.decode('utf-8'))
-            body.update(User='***', Pwd='***')
+            body = anonymize_request(
+                json.loads(response.request.body.decode('utf-8')))
             message += f"\nurl: {response.url}\nrequest body: {body}\n"
         if item:
             message = message.replace("request", f"{item}")

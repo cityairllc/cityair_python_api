@@ -14,44 +14,44 @@ import pytz
 from cityair_api.settings import LOGIN_VAR_NAME, PSW_VAR_NAME
 from .exceptions import EmptyDataException
 
-RIGHT_PARAMS_NAMES = {'FlagPs220'            : '220',
-                      'RecvDate'             : 'receive_date', 'Ps220': '220',
-                      'GsmRssi'              : 'rssi',
-                      'SendDate'             : 'date', 'Temperature': 'T',
-                      'BatLow'               : 'is_bat_low',
-                      'Humidity'             : 'RH', 'Pressure': 'P',
-                      'ChildDevices'         : 'children',
+RIGHT_PARAMS_NAMES = {'FlagPs220': '220',
+                      'RecvDate': 'receive_date', 'Ps220': '220',
+                      'GsmRssi': 'rssi',
+                      'SendDate': 'date', 'Temperature': 'T',
+                      'BatLow': 'is_bat_low',
+                      'Humidity': 'RH', 'Pressure': 'P',
+                      'ChildDevices': 'children',
                       'DataDeliveryPeriodSec': 'delivery_period',
-                      'Description'          : 'description',
-                      'DeviceCheckInfos'     : 'check_infos',
-                      'DeviceFirstDate'      : 'first_packet_date',
-                      'DeviceIMEI'           : 'IMEI',
-                      'DeviceIMSI'           : 'IMSI',
-                      'DeviceLastDate'       : 'last_packet_date',
-                      'DeviceLastGeo'        : 'coordinates',
-                      'DeviceName'           : 'name',
-                      'FlagBatLow'           : 'is_bat_low', 'DeviceId': 'id',
-                      'IsOffline'            : 'is_offline',
-                      'SerialNumber'         : 'serial_number',
-                      'SoftwareVersion'      : 'software',
-                      'SourceType'           : 'type', 'TagIds': 'tags',
-                      'MoId'                 : 'id',
-                      'Name'                 : 'name',
-                      'PublishName'          : 'internal_name',
-                      'PublishNameRu'        : 'name_ru',
-                      'ManualDeviceLinks'    : 'devices_manual',
-                      'DeviceLink'           : 'devices_auto',
-                      'GmtOffset'            : 'gmt_offset',
-                      'DotItem'              : 'coordinates',
-                      'Latitude'             : 'latitude',
-                      'Longitude'            : 'longitude',
-                      'LocationId'           : 'location',
-                      'GeoInfo'              : 'coordinates',
-                      'Geo'                  : 'coordinates', 'DataAqi': 'AQI',
-                      'GmtHour'              : 'gmt_hour_diff',
-                      'PublishOnMap'         : 'is_public',
-                      'NameRu'               : 'name_ru',
-                      'PacketId'             : 'packet_id'
+                      'Description': 'description',
+                      'DeviceCheckInfos': 'check_infos',
+                      'DeviceFirstDate': 'first_packet_date',
+                      'DeviceIMEI': 'IMEI',
+                      'DeviceIMSI': 'IMSI',
+                      'DeviceLastDate': 'last_packet_date',
+                      'DeviceLastGeo': 'coordinates',
+                      'DeviceName': 'name',
+                      'FlagBatLow': 'is_bat_low', 'DeviceId': 'id',
+                      'IsOffline': 'is_offline',
+                      'SerialNumber': 'serial_number',
+                      'SoftwareVersion': 'software',
+                      'SourceType': 'type', 'TagIds': 'tags',
+                      'MoId': 'id',
+                      'Name': 'name',
+                      'PublishName': 'internal_name',
+                      'PublishNameRu': 'name_ru',
+                      'ManualDeviceLinks': 'devices_manual',
+                      'DeviceLink': 'devices_auto',
+                      'GmtOffset': 'gmt_offset',
+                      'DotItem': 'coordinates',
+                      'Latitude': 'latitude',
+                      'Longitude': 'longitude',
+                      'LocationId': 'location',
+                      'GeoInfo': 'coordinates',
+                      'Geo': 'coordinates', 'DataAqi': 'AQI',
+                      'GmtHour': 'gmt_hour_diff',
+                      'PublishOnMap': 'is_public',
+                      'NameRu': 'name_ru',
+                      'PacketId': 'packet_id'
                       }
 USELESS_COLS = ['220', 'BatLow', 'receive_date', 'GeoInfo', 'Geo', 'Date',
                 'SendDate', 'ResetMoData', 'description', 'coordinates',
@@ -91,8 +91,8 @@ def get_credentials(silent=False) -> Tuple[str, str]:
         if silent:
             raise ValueError(msg)
         psw = getpass.getpass(
-                prompt=f"{msg}\n please specify you cityair.io password: ",
-                stream=None)
+            prompt=f"{msg}\n please specify you cityair.io password: ",
+            stream=None)
     return login, psw
 
 
@@ -114,18 +114,18 @@ def add_progress_bar(method):
             return method(*args, **kwargs)
         finish_date = to_date(kwargs.get('finish_date',
                                          datetime.datetime.utcnow().replace(
-                                                 tzinfo=pytz.utc)))
+                                             tzinfo=pytz.utc)))
         kwargs.update(take_count=kwargs.get('take_count', DEFAULT_TAKE_COUNT))
         bar = progressbar.ProgressBar(max_value=(finish_date - start_date)
                                       .total_seconds() / PROGRESS_SCALER,
                                       widgets=[
-                                              f"{args[1]}",
-                                              ': ',
-                                              progressbar.Percentage(),
-                                              '    ',
-                                              progressbar.Timer(),
-                                              progressbar.Bar(),
-                                              progressbar.ETA()
+                                          f"{args[1]}",
+                                          ': ',
+                                          progressbar.Percentage(),
+                                          '    ',
+                                          progressbar.Timer(),
+                                          progressbar.Bar(),
+                                          progressbar.ETA()
                                       ],
                                       max_error=False
                                       )
@@ -142,13 +142,13 @@ def add_progress_bar(method):
                 else:
                     for key in df:
                         res[key] = pd.concat(
-                                [res.get(key, pd.DataFrame()), df[key]],
-                                sort=False)
+                            [res.get(key, pd.DataFrame()), df[key]],
+                            sort=False)
                     start_date = max([res[key].index[-1] for key in res])
             except EmptyDataException:
                 start_date += datetime.timedelta(days=2)
             kwargs.update(
-                    start_date=start_date + datetime.timedelta(seconds=30))
+                start_date=start_date + datetime.timedelta(seconds=30))
             bar.update(bar.max_value - (
                     finish_date - start_date).total_seconds() /
                        PROGRESS_SCALER)

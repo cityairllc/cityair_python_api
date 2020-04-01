@@ -1,5 +1,6 @@
 import datetime
 import json
+import logging
 from collections import Counter
 from collections.abc import Iterable
 from enum import Enum
@@ -10,13 +11,12 @@ from cached_property import cached_property
 
 from .exceptions import (
     CityAirException, EmptyDataException, NoAccessException, ServerException,
-)
+    anonymize_request)
 from .utils import (
     MAIN_DEVICE_PARAMS, MAIN_STATION_PARAMS, RIGHT_PARAMS_NAMES, USELESS_COLS,
     add_progress_bar, debugit, prep_df, prep_dicts, timeit, to_date,
     unpack_cols,
-    get_credentials,
-)
+    get_credentials, )
 
 
 class Period(Enum):
@@ -125,7 +125,7 @@ class CityAirRequest:
 
     @debugit
     @timeit
-    def _make_request(self, method_url, *keys, **kwargs):
+    def _make_request(self, method_url, *keys, silent=True,**kwargs):
         """
         Making request to cityair backend
 
@@ -135,6 +135,8 @@ class CityAirRequest:
             url of the specified method
         *keys: [str]
             keys, which data to return from the raw server response
+        silent: bool, default True
+            whether to raise EmptyDataException if requested data is empty
         **kwargs : dict
             additional args which are directly passed to the request body
         -------"""
@@ -157,7 +159,11 @@ class CityAirRequest:
         response_data = response_json.get('Result')
         for key in keys:
             if len(response_data[key]) == 0:
-                raise EmptyDataException(response=response)
+                if not silent:
+                    raise EmptyDataException(response=response)
+                logging.warning("You don't have access to any %s\n"
+                                "url:\n%s"
+                                "filter\n%s", key, url, anonymize_request(body))
         if len(keys) == 0:
             return response_data
         elif len(keys) == 1:
@@ -288,7 +294,7 @@ class CityAirRequest:
             filter_['FilterType'] = 3
             filter_['Skip'] = 0
         packets = self._make_request("DevicesApi2/GetPackets", 'Packets',
-                                     Filter=filter_, time=time,
+                                     Filter=filter_, time=time, silent=False,
                                      debug=debug)
         df = pd.DataFrame.from_records(packets)
 
@@ -458,7 +464,8 @@ class CityAirRequest:
             filter_['FilterType'] = 3
             filter_['SkipFromLast'] = 0
         packets = self._make_request("MoApi2/GetMoPackets", 'Packets',
-                                     Filter=filter_, time=time, debug=debug)
+                                     Filter=filter_, time=time, debug=debug,
+                                     silent=False)
         df = pd.DataFrame.from_records(packets)
         records = []
         for packets in df['DataJson']:
