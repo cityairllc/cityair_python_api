@@ -162,8 +162,8 @@ class CityAirRequest:
                 if not silent:
                     raise EmptyDataException(response=response)
                 logging.warning("You don't have access to any %s\n"
-                                "url:\n%s"
-                                "filter\n%s", key, url, anonymize_request(body))
+                                "url:%s\n"
+                                "filter%s", key, url, anonymize_request(body))
         if len(keys) == 0:
             return response_data
         elif len(keys) == 1:

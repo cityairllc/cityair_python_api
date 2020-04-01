@@ -6,8 +6,9 @@ import requests
 
 
 def anonymize_request(body: dict) -> dict:
-    body.copy().update(User='***', Pwd='***')
-    return body
+    res = body.copy()
+    res.update(User='***', Pwd='***')
+    return res
 
 
 class CityAirException(Exception):
