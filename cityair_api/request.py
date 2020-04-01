@@ -6,7 +6,7 @@ from collections import Counter
 from collections.abc import Iterable
 from enum import Enum
 from pprint import pformat
-from typing import Iterator, List, Tuple, Union
+from typing import Dict, Iterator, List, Tuple, Union
 
 import pandas as pd
 import requests
@@ -180,7 +180,8 @@ class CityAirRequest:
 
     def get_devices(self, format: str = 'list', include_offline: bool = True,
                     include_children: bool = False,
-                    time=False, debug=False):
+                    time=False, debug=False) \
+            -> Union[List[str], pd.DataFrame, List[dict]]:
         """
         Provides devices information in various formats
 
@@ -248,7 +249,8 @@ class CityAirRequest:
                         finish_date=None, last_packet_id=None,
                         take_count: int = 500, all_cols=False,
                         format: str = 'df', verbose=True,
-                        time=False, debug=False):
+                        time=False, debug=False) \
+            -> Union[pd.DataFrame, Dict[str, pd.DataFrame]]:
         """
         Provides data from the selected device
 
@@ -368,7 +370,8 @@ class CityAirRequest:
                 f"formats are: 'df', 'dict'")
 
     def get_stations(self, format: str = 'list', include_offline: bool = True,
-                     time=False, debug=False):
+                     time=False, debug=False) \
+            -> Union[List[str], pd.DataFrame, List[dict]]:
         """
         Provides devices information in various formats
 
@@ -438,7 +441,7 @@ class CityAirRequest:
                          finish_date=datetime.datetime.now(),
                          take_count: int = 1000,
                          period: Period = Period.TWENTY_MINS, verbose=True,
-                         time=False, debug=False):
+                         time=False, debug=False) -> pd.DataFrame:
         """
         Provides data from the selected station
         Parameters
@@ -485,7 +488,7 @@ class CityAirRequest:
         df = prep_df(df.drop(['DataJson'], axis=1), index_col='date')
         return df
 
-    def get_locations(self):
+    def get_locations(self) -> List[dict]:
         """
         Provides information on locations including stations and devices
         """
