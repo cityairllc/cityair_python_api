@@ -6,7 +6,7 @@ from collections import Counter
 from collections.abc import Iterable
 from enum import Enum
 from pprint import pformat
-from typing import Dict, Iterator, List, Tuple, Union
+from typing import Dict, Iterator, List, Optional, Tuple, Union
 
 import pandas as pd
 import requests
@@ -614,7 +614,7 @@ class CityAirRequest:
         msgs = self.get_logs(serial_number, type=type, take_count=1)
         return next(msgs)
 
-    def get_last_rawpacket(self, serial_number: str) -> str:
+    def get_last_rawpacket(self, serial_number: str) -> Optional[str]:
         f"""
         retrieves filtered log records and extracts packet sent by device
         Parameters
@@ -626,9 +626,12 @@ class CityAirRequest:
 
         """
         msgs = self.get_logs(serial_number, type="packet", take_count=1)
-        return next(msgs)
+        try:
+            return next(msgs)
+        except StopIteration:
+            return None
 
-    def get_last_checkinfo(self, serial_number: str) -> List[dict]:
+    def get_last_checkinfo(self, serial_number: str) -> Optional[List[dict]]:
         f"""
         retrieves filtered log records and extracts checkinfo sent by device
         Parameters
@@ -639,8 +642,11 @@ class CityAirRequest:
             last checkinfo
 
         """
-        msg = next(self.get_logs(serial_number, type="checkinfo", take_count=1))
-        return parse_checkinfo(msg)
+        msg = (self.get_logs(serial_number, type="checkinfo", take_count=1))
+        try:
+            return parse_checkinfo(next((msg)))
+        except StopIteration:
+            return None
 
 
 CAR = CityAirRequest

@@ -9,7 +9,7 @@ STATIONS_PACKETS_URL = "MoApi2/GetMoPackets"
 LOGS_URL = "/LoggerApi/GetLogItems"
 FULL_LOGS_URL ="/LoggerApi/GetFullLogItems"
 
-PACKET_SENDER_IDS = [{"AppId": 4, "SenderIds": [23]}]  # for logs lookups
+PACKET_SENDER_IDS = [{"AppId": 4, "SenderIds": [23]}, {"AppId": 2, "SenderIds": [7]}]  # for logs lookups
 
 LOG_CHECKINFO_FILTER_PATTERN = "#CheckInfo#{[^']*}"
 LOG_CHECKINFO_ADDITIONAL_FILTER_SUFFIX = " CheckInfo"
