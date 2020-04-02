@@ -203,6 +203,9 @@ def parse_checkinfo(msg :str) -> List[dict]:
     parsed_checkinfo = []
     parse_re = re.compile(CHECKINFO_PARSE_PATTERN)
     infos = parse_re.findall(msg.replace(", ", ","))
+    if not infos:
+        raise ValueError("checkinfo data should be in the format"
+                         f" of \"{CHECKINFO_PARSE_PATTERN}\"")
     for info in infos:
         module, status, count, details = info.split(',')
         parsed_checkinfo.append(dict(
