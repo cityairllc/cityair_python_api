@@ -47,4 +47,16 @@ afterwards get dataset: ::
 
     df = r.get_device_data(serial_numbers[0])
 
+TODO
+******
 
+* tests
+    * required fields with (all_cols=True/False)
+    * getting data with different settings
+* refactor
+    * move settings to separate file
+    * refactor useless_cols mess
+    * remove timeit, debugit
+* deploy
+    * precommit test
+    * autodeploy to pip
