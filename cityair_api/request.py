@@ -520,10 +520,10 @@ class CityAirRequest:
             full_log_items = self._make_request(FULL_LOGS_URL,
                                                 "LogsItems",
                                                 LogIds=[log_item["LogId"]])
-            log_item.update(msg=full_log_items[0]['Message'])
+            log_item.update(msg=full_log_items[1]['Message'])
         else:
             log_item.update(msg=log_item['MessageShort'])
-        log_item.update(packet=extract_re.search(log_item['msg']).group(0))
+        log_item.update(packet=extract_re.search(log_item['msg']).group(1))
         return log_item
 
     def get_logs(self, serial_number: str, type: str = "packet",
@@ -531,7 +531,7 @@ class CityAirRequest:
                  app_sender_ids=PACKET_SENDER_IDS, to_include_date=False,
                  extract_pattern=LOG_EXTRACT_PATTERN, filter_pattern="") \
             -> Iterator[Union[str, Tuple[datetime.datetime, str]]]:
-        f"""
+        """
         retrieves log records and extracts records of specific types
         Parameters
         ----------
@@ -548,14 +548,15 @@ class CityAirRequest:
         finish_date: datetime or str, default None
         take_count: int, default 1000
             packets count are fetched before filtering
-        app_sender_ids: dict, default {PACKET_SENDER_IDS}
+        app_sender_ids: dict, default [{"AppId": 4, "SenderIds": [23]},
+                                       {"AppId": 2, "SenderIds": [7]}]
             passed to backend for filtering, 
         to_include_date: bool, default False
             if to include date to the return           
-        extract_pattern: str
+        extract_pattern: str, default "#([^']*)##"
             regex for extraction of packet from log message
-        filter_pattern: str, {LOG_PACKET_FILTER_PATTERN} if type='packet'
-                             {LOG_CHECKINFO_FILTER_PATTERN} if type='checkinfo'
+        filter_pattern: str, r"#PT#\d+" if type='packet'
+                             "#CheckInfo#{[^']*}" if type='checkinfo'
             regex for filtering log records
         Returns
         -------
@@ -596,7 +597,7 @@ class CityAirRequest:
                 yield log_item['packet']
 
     def get_last_log(self, serial_number: str, type: str = "packet") -> str:
-        f"""
+        """
         retrieves log records and extracts records of specific types
         Parameters
         ----------
@@ -616,7 +617,7 @@ class CityAirRequest:
         return next(msgs)
 
     def get_last_rawpacket(self, serial_number: str) -> Optional[str]:
-        f"""
+        """
         retrieves filtered log records and extracts packet sent by device
         Parameters
         ----------
