@@ -520,7 +520,7 @@ class CityAirRequest:
             full_log_items = self._make_request(FULL_LOGS_URL,
                                                 "LogsItems",
                                                 LogIds=[log_item["LogId"]])
-            log_item.update(msg=full_log_items[1]['Message'])
+            log_item.update(msg=full_log_items[0]['Message'])
         else:
             log_item.update(msg=log_item['MessageShort'])
         log_item.update(packet=extract_re.search(log_item['msg']).group(1))
