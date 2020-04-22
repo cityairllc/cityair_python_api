@@ -578,8 +578,8 @@ class CityAirRequest:
         extract_re = re.compile(extract_pattern)
 
         filter_ = {'AppSenderIds'       : app_sender_ids,
-                   'BeginDate'          : to_date(start_date),
-                   'EndDate'            : to_date(finish_date),
+                   'BeginDate'          : to_date(start_date).isoformat(),
+                   'EndDate'            : to_date(finish_date).isoformat(),
                    'EventTypeIds'       : [],
                    'MaxLogItemsCount'   : take_count,
                    'MessageFilterString': serial_number}
