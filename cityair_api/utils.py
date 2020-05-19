@@ -118,8 +118,6 @@ def add_progress_bar(method):
                     start_date = res.index[-1]
                 else:
                     for serial, df in data.items():
-                        print(res[serial].columns)
-                        print(df.columns)
                         res[serial] = pd.concat([res[serial], df], sort=False)
                     start_date = max([res[key].index[-1] for key in res])
             except EmptyDataException:
