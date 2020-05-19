@@ -1,7 +1,6 @@
-LOGIN_VAR_NAME = 'CITYAIR_LOGIN'
-PSW_VAR_NAME = 'CITYAIR_PSW'
+TOKEN_VAR_NAME = 'CITYAIR_TOKEN'
 
-DEFAULT_HOST = "https://cityair.io/backend-api/request-v2.php?map="
+DEFAULT_HOST = "https://my.cityair.io/api/request.php?map="
 DEVICES_URL = "DevicesApi2/GetDevices"
 DEVICES_PACKETS_URL = "DevicesApi2/GetPackets"
 STATIONS_URL = "MoApi2/GetMoItems"

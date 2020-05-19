@@ -1,6 +1,7 @@
 import datetime
 import json
 import logging
+import os
 import re
 from collections import Counter
 from collections.abc import Iterable
@@ -22,10 +23,11 @@ from .settings import (
     LOG_CHECKINFO_FILTER_PATTERN, LOG_EXTRACT_PATTERN,
     LOG_PACKET_ADDITIONAL_FILTER_SUFFIX, LOG_PACKET_FILTER_PATTERN,
     PACKET_SENDER_IDS, STATIONS_PACKETS_URL, STATIONS_URL,
+    TOKEN_VAR_NAME,
 )
 from .utils import (
     MAIN_DEVICE_PARAMS, MAIN_STATION_PARAMS, RIGHT_PARAMS_NAMES,
-    USELESS_COLS, add_progress_bar, debugit, get_credentials,
+    USELESS_COLS, add_progress_bar, debugit,
     parse_checkinfo, prep_df, prep_dicts, timeit, to_date,
     unpack_cols,
 )
@@ -43,7 +45,8 @@ class CityAirRequest:
     Object for accessing data of CityAir.io project
     """
 
-    def __init__(self, user: str = None, psw: str = None, **kwargs):
+    def __init__(self, token=None, host_url=DEFAULT_HOST, timeout=100,
+                 verify_ssl=True, silent=False):
         """
         Parameters
         ----------
@@ -59,13 +62,22 @@ class CityAirRequest:
         silent: bool, default False
             whether
         """
-        self.host_url = kwargs.get('host_url', DEFAULT_HOST)
-        self.timeout = kwargs.get('timeout', 100)
-        self.verify_ssl = kwargs.get('verify_ssl', True)
-        if user and psw:
-            self.user, self.psw = user, psw
+
+        self.host_url = host_url
+        self.timeout = timeout
+        self.verify_ssl = verify_ssl
+        if token:
+            self.token = token
         else:
-            self.user, self.psw = get_credentials(kwargs.get("silent", False))
+            try:
+                token = os.environ[TOKEN_VAR_NAME]
+            except KeyError:
+                msg = f"Could not find \"{TOKEN_VAR_NAME}\" in environment " \
+                    f"variables"
+                if silent:
+                    raise ValueError(msg)
+                token = input(f"{msg}\n please specify you cityair.io token: ")
+            self.token = token
 
     @cached_property
     def _device_by_serial(self):
@@ -77,8 +89,16 @@ class CityAirRequest:
     def _device_value_types(self):
         value_types_data = self._make_request(DEVICES_URL,
                                               "PacketsValueTypes")
-        return dict(zip([(data.get('ValueType')) for data in value_types_data],
+        value_types =  dict(zip([(data.get('ValueType')) for data in value_types_data],
                         [data.get('TypeName') for data in value_types_data]))
+        # adding "_" to not unique value type names
+        name_counts = Counter(value_types.values())
+        for id, name in reversed(value_types.items()):
+            current_count = name_counts[name]
+            if current_count > 1:
+                value_types[id] = name + (current_count - 1) * "_"
+                name_counts[name] = current_count - 1
+        return value_types
 
     @cached_property
     def _stations_value_types(self):
@@ -145,8 +165,7 @@ class CityAirRequest:
         **kwargs : dict
             additional args which are directly passed to the request body
         -------"""
-        body = {"User": getattr(self, 'user'), "Pwd": getattr(self, 'psw'),
-                **kwargs}
+        body = {"Token": getattr(self, 'token'), **kwargs}
         url = f"{self.host_url}/{method_url}"
         response = requests.post(url, json=body, timeout=self.timeout,
                                  verify=self.verify_ssl)
@@ -578,8 +597,8 @@ class CityAirRequest:
         extract_re = re.compile(extract_pattern)
 
         filter_ = {'AppSenderIds'       : app_sender_ids,
-                   'BeginDate'          : to_date(start_date).isoformat(),
-                   'EndDate'            : to_date(finish_date).isoformat(),
+                   'BeginDate'          : to_date(start_date, format='str'),
+                   'EndDate'            : to_date(finish_date, format='str'),
                    'EventTypeIds'       : [],
                    'MaxLogItemsCount'   : take_count,
                    'MessageFilterString': serial_number}
@@ -612,7 +631,7 @@ class CityAirRequest:
         """
         if type not in ('packet', 'checkinfo'):
             raise ValueError(
-                "type arg shoud be either 'packet' or 'checkinfo'")
+                    "type arg shoud be either 'packet' or 'checkinfo'")
         msgs = self.get_logs(serial_number, type=type, take_count=1)
         return next(msgs)
 

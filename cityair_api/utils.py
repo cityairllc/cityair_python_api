@@ -5,55 +5,55 @@ import os
 import re
 import sys
 import time
+from collections import defaultdict
 from functools import wraps
-from typing import List, Tuple
+from typing import List, Tuple, Union, Optional
 
 import pandas as pd
 import progressbar
 import pytz
 
-from cityair_api.settings import CHECKINFO_PARSE_PATTERN, LOGIN_VAR_NAME, \
-    PSW_VAR_NAME
+from cityair_api.settings import CHECKINFO_PARSE_PATTERN
 from .exceptions import EmptyDataException
 
-RIGHT_PARAMS_NAMES = {'FlagPs220': '220',
-                      'RecvDate': 'receive_date', 'Ps220': '220',
-                      'GsmRssi': 'rssi',
-                      'SendDate': 'date', 'Temperature': 'T',
-                      'BatLow': 'is_bat_low',
-                      'Humidity': 'RH', 'Pressure': 'P',
-                      'ChildDevices': 'children',
+RIGHT_PARAMS_NAMES = {'FlagPs220'            : '220',
+                      'RecvDate'             : 'receive_date', 'Ps220': '220',
+                      'GsmRssi'              : 'rssi',
+                      'SendDate'             : 'date', 'Temperature': 'T',
+                      'BatLow'               : 'is_bat_low',
+                      'Humidity'             : 'RH', 'Pressure': 'P',
+                      'ChildDevices'         : 'children',
                       'DataDeliveryPeriodSec': 'delivery_period',
-                      'Description': 'description',
-                      'DeviceCheckInfos': 'check_infos',
-                      'DeviceFirstDate': 'first_packet_date',
-                      'DeviceIMEI': 'IMEI',
-                      'DeviceIMSI': 'IMSI',
-                      'DeviceLastDate': 'last_packet_date',
-                      'DeviceLastGeo': 'coordinates',
-                      'DeviceName': 'name',
-                      'FlagBatLow': 'is_bat_low', 'DeviceId': 'id',
-                      'IsOffline': 'is_offline',
-                      'SerialNumber': 'serial_number',
-                      'SoftwareVersion': 'software',
-                      'SourceType': 'type', 'TagIds': 'tags',
-                      'MoId': 'id',
-                      'Name': 'name',
-                      'PublishName': 'internal_name',
-                      'PublishNameRu': 'name_ru',
-                      'ManualDeviceLinks': 'devices_manual',
-                      'DeviceLink': 'devices_auto',
-                      'GmtOffset': 'gmt_offset',
-                      'DotItem': 'coordinates',
-                      'Latitude': 'latitude',
-                      'Longitude': 'longitude',
-                      'LocationId': 'location',
-                      'GeoInfo': 'coordinates',
-                      'Geo': 'coordinates', 'DataAqi': 'AQI',
-                      'GmtHour': 'gmt_hour_diff',
-                      'PublishOnMap': 'is_public',
-                      'NameRu': 'name_ru',
-                      'PacketId': 'packet_id'
+                      'Description'          : 'description',
+                      'DeviceCheckInfos'     : 'check_infos',
+                      'DeviceFirstDate'      : 'first_packet_date',
+                      'DeviceIMEI'           : 'IMEI',
+                      'DeviceIMSI'           : 'IMSI',
+                      'DeviceLastDate'       : 'last_packet_date',
+                      'DeviceLastGeo'        : 'coordinates',
+                      'DeviceName'           : 'name',
+                      'FlagBatLow'           : 'is_bat_low', 'DeviceId': 'id',
+                      'IsOffline'            : 'is_offline',
+                      'SerialNumber'         : 'serial_number',
+                      'SoftwareVersion'      : 'software',
+                      'SourceType'           : 'type', 'TagIds': 'tags',
+                      'MoId'                 : 'id',
+                      'Name'                 : 'name',
+                      'PublishName'          : 'internal_name',
+                      'PublishNameRu'        : 'name_ru',
+                      'ManualDeviceLinks'    : 'devices_manual',
+                      'DeviceLink'           : 'devices_auto',
+                      'GmtOffset'            : 'gmt_offset',
+                      'DotItem'              : 'coordinates',
+                      'Latitude'             : 'latitude',
+                      'Longitude'            : 'longitude',
+                      'LocationId'           : 'location',
+                      'GeoInfo'              : 'coordinates',
+                      'Geo'                  : 'coordinates', 'DataAqi': 'AQI',
+                      'GmtHour'              : 'gmt_hour_diff',
+                      'PublishOnMap'         : 'is_public',
+                      'NameRu'               : 'name_ru',
+                      'PacketId'             : 'packet_id'
                       }
 USELESS_COLS = ['220', 'BatLow', 'receive_date', 'GeoInfo', 'Geo', 'Date',
                 'SendDate', 'ResetMoData', 'description', 'coordinates',
@@ -71,39 +71,6 @@ MAIN_DEVICE_PARAMS = ['serial_number', 'name', 'software', 'stations',
                       'children', 'check_infos']
 MAIN_STATION_PARAMS = ['id', 'name', 'name_ru', 'location', 'gmt_offset',
                        'devices', 'latitude', 'longitude']
-
-
-def get_credentials(silent=False) -> Tuple[str, str]:
-    """
-    extracting login and password from environment variables
-
-    Parameters
-    ----------
-    silent: bool, default False
-        whether to prompt input for login and passwordt
-
-    Returns
-    -------
-    login and password
-
-    """
-    try:
-        login = os.environ[LOGIN_VAR_NAME]
-    except KeyError:
-        msg = f"Could not find \"{LOGIN_VAR_NAME}\" in environment variables"
-        if silent:
-            raise ValueError(msg)
-        login = input(f"{msg}\n please specify you cityair.io login: ")
-    try:
-        psw = os.environ[PSW_VAR_NAME]
-    except KeyError:
-        msg = f"Could not find \"{PSW_VAR_NAME}\" in environment variables"
-        if silent:
-            raise ValueError(msg)
-        psw = getpass.getpass(
-            prompt=f"{msg}\n please specify you cityair.io password: ",
-            stream=None)
-    return login, psw
 
 
 def add_progress_bar(method):
@@ -124,41 +91,41 @@ def add_progress_bar(method):
             return method(*args, **kwargs)
         finish_date = to_date(kwargs.get('finish_date',
                                          datetime.datetime.utcnow().replace(
-                                             tzinfo=pytz.utc)))
+                                                 tzinfo=pytz.utc)))
         kwargs.update(take_count=kwargs.get('take_count', DEFAULT_TAKE_COUNT))
         bar = progressbar.ProgressBar(max_value=(finish_date - start_date)
                                       .total_seconds() / PROGRESS_SCALER,
                                       widgets=[
-                                          f"{args[1]}",
-                                          ': ',
-                                          progressbar.Percentage(),
-                                          '    ',
-                                          progressbar.Timer(),
-                                          progressbar.Bar(),
-                                          progressbar.ETA()
+                                              f"{args[1]}",
+                                              ': ',
+                                              progressbar.Percentage(),
+                                              '    ',
+                                              progressbar.Timer(),
+                                              progressbar.Bar(),
+                                              progressbar.ETA()
                                       ],
                                       max_error=False
                                       )
         if kwargs.get('format', 'df') == 'df':
             res = pd.DataFrame()
         else:
-            res = dict()
+            res = defaultdict(pd.DataFrame)
         while finish_date - start_date > datetime.timedelta(hours=1):
             try:
-                df = method(*args, **kwargs)
+                data = method(*args, **kwargs)
                 if isinstance(res, pd.DataFrame):
-                    res = pd.concat([res, df], sort=False)
+                    res = pd.concat([res, data], sort=False)
                     start_date = res.index[-1]
                 else:
-                    for key in df:
-                        res[key] = pd.concat(
-                            [res.get(key, pd.DataFrame()), df[key]],
-                            sort=False)
+                    for serial, df in data.items():
+                        print(res[serial].columns)
+                        print(df.columns)
+                        res[serial] = pd.concat([res[serial], df], sort=False)
                     start_date = max([res[key].index[-1] for key in res])
             except EmptyDataException:
                 start_date += datetime.timedelta(days=2)
             kwargs.update(
-                start_date=start_date + datetime.timedelta(seconds=30))
+                    start_date=start_date + datetime.timedelta(seconds=30))
             bar.update(bar.max_value - (
                     finish_date - start_date).total_seconds() /
                        PROGRESS_SCALER)
@@ -199,7 +166,7 @@ def prep_dicts(dicts, newkeys, keys_to_drop, dropna=True):
     return res
 
 
-def parse_checkinfo(msg :str) -> List[dict]:
+def parse_checkinfo(msg: str) -> List[dict]:
     parsed_checkinfo = []
     parse_re = re.compile(CHECKINFO_PARSE_PATTERN)
     infos = parse_re.findall(msg.replace(", ", ","))
@@ -209,20 +176,39 @@ def parse_checkinfo(msg :str) -> List[dict]:
     for info in infos:
         module, status, count, details = info.split(',')
         parsed_checkinfo.append(dict(
-            module=module,
-            has_error=False if status == 'ok' else True,
-            errors_count=int(count),
-            details=str(details).replace("\"", "")))
+                module=module,
+                has_error=False if status == 'ok' else True,
+                errors_count=int(count),
+                details=str(details).replace("\"", "")))
     return parsed_checkinfo
 
 
-def to_date(date_string):
-    if not date_string:
+def to_date(date: Optional[Union[datetime.datetime, str]],
+            format: str = 'date') -> Optional[Union[str, datetime.datetime]]:
+    """
+
+    :param date: date (datetime or string) to be converted
+    :param format: str, 'str' or 'date', default 'date'
+        return type
+    :return:
+    """
+    if not date:
         return None
-    if isinstance(date_string, datetime.datetime):
-        return date_string
+    if isinstance(date, datetime.datetime):
+        pass
+    elif isinstance(date, str):
+        return pd.to_datetime(date, dayfirst=True, utc=True)
     else:
-        return pd.to_datetime(date_string, dayfirst=True, utc=True)
+        raise ValueError(f"date should be 'str' or 'datetime', "
+                         f"got {type(date)} instead")
+
+    if format == 'str':
+        return date.isoformat()
+    elif format == 'date':
+        return date
+    else:
+        raise ValueError(f"format arg should be one of the 'str', 'date', "
+                         f"got {format} instead")
 
 
 def prep_df(df: pd.DataFrame, right_param_names: dict = RIGHT_PARAMS_NAMES,
@@ -289,8 +275,7 @@ def debugit(method):
     def print_request_response(*args, **kwargs):
         to_debug = kwargs.pop('debug', False)
         obj = args[0]
-        body = {"User": getattr(obj, 'user'), "Pwd": getattr(obj, 'psw'),
-                **kwargs}
+        body = {"Token": getattr(obj, 'token'), **kwargs}
         url = f"{getattr(obj, 'host_url', None)}/{args[1]}"
         if to_debug:
             print(f"url: {url}\nrequest_body: {body}")
