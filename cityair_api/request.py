@@ -50,8 +50,8 @@ class CityAirRequest:
         """
         Parameters
         ----------
-        user, psw:  str
-            authentication information
+        token:  str
+            auth information
         host_url: str, default {DEFAULT_HOST}
             url of the CityAir API, you may want to change it in case using a
             StandAloneServer
