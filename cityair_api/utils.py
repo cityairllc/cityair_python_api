@@ -245,18 +245,15 @@ def timeit(method):
     Decorator to print time elapsed
 
     """
-
     @wraps(method)
     def timed(*args, **kwargs):
-        to_time = kwargs.pop('time', False)
         ts = time.time()
         result = method(*args, **kwargs)
         te = time.time()
-        if to_time:
-            print(f"{te - ts:.2f} seconds took to {method.__name__} of size"
+
+        logging.debug(f"{te - ts:.2f} seconds took to {method.__name__} of size"
                   f"{sys.getsizeof(result) / 1000: .2f} KB\nargs were"
                   f" {', '.join(map(str, args[1:]))}\nkwargs were: {kwargs}")
         return result
-
     return timed
 

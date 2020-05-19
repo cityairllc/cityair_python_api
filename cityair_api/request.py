@@ -89,8 +89,9 @@ class CityAirRequest:
     def _device_value_types(self):
         value_types_data = self._make_request(DEVICES_URL,
                                               "PacketsValueTypes")
-        value_types =  dict(zip([(data.get('ValueType')) for data in value_types_data],
-                        [data.get('TypeName') for data in value_types_data]))
+        value_types = dict(
+                zip([(data.get('ValueType')) for data in value_types_data],
+                    [data.get('TypeName') for data in value_types_data]))
         # adding "_" to not unique value type names
         name_counts = Counter(value_types.values())
         for id, name in reversed(value_types.items()):
@@ -196,8 +197,7 @@ class CityAirRequest:
             return [response_data[key] for key in keys]
 
     def get_devices(self, format: str = 'list', include_offline: bool = True,
-                    include_children: bool = False,
-                    time=False) \
+                    include_children: bool = False) \
             -> Union[List[str], pd.DataFrame, List[dict]]:
         """
         Provides devices information in various formats
@@ -215,10 +215,8 @@ class CityAirRequest:
             whether to include offline devices to the output
         include_children : bool, default False
             whether to include info of child devices to the output
-        time: bool, default False
-            whether to print how long it took to gather data
         -------"""
-        devices_data = self._make_request(DEVICES_URL, "Devices", time=time)
+        devices_data = self._make_request(DEVICES_URL, "Devices")
         df = pd.DataFrame.from_records(devices_data)
         if format == 'raw':
             return df
@@ -262,8 +260,7 @@ class CityAirRequest:
     def get_device_data(self, serial_number: str, start_date=None,
                         finish_date=None, last_packet_id=None,
                         take_count: int = 500, all_cols=False,
-                        format: str = 'df', verbose=True,
-                        time=False) \
+                        format: str = 'df', verbose=True) \
             -> Union[pd.DataFrame, Dict[str, pd.DataFrame]]:
         """
         Provides data from the selected device
@@ -293,8 +290,6 @@ class CityAirRequest:
                        data of the device
         verbose: bool, default True:
             whether to show progress bar
-        time: bool, default False
-            whether to print how long it took to gather data
         -------"""
 
         device_id = self._device_by_serial.get(serial_number)
@@ -315,7 +310,7 @@ class CityAirRequest:
             filter_['FilterType'] = 3
             filter_['Skip'] = 0
         packets = self._make_request(DEVICES_PACKETS_URL, 'Packets',
-                                     Filter=filter_, time=time, silent=False)
+                                     Filter=filter_, silent=False)
         df = pd.DataFrame.from_records(packets)
 
         df = unpack_cols(df, ['ServiceData'])
@@ -380,9 +375,8 @@ class CityAirRequest:
                     f"Unknown option of format argument: {format}. Available "
                     f"formats are: 'df', 'dict'")
 
-    def get_stations(self, format: str = 'list', include_offline: bool = True,
-                     time=False) \
-            -> Union[List[str], pd.DataFrame, List[dict]]:
+    def get_stations(self, format: str = 'list', include_offline: bool =
+    True) -> Union[List[str], pd.DataFrame, List[dict]]:
         """
         Provides devices information in various formats
 
@@ -397,13 +391,10 @@ class CityAirRequest:
             server, other params are ignored
         include_offline: bool, default True
            whether to include offline devices to the output
-        time: bool, default False
-           whether to print how long it took to gather data
         -------"""
         locations_data, stations_data, devices_data = self._make_request(
                 STATIONS_URL, "Locations",
-                "MoItems", "Devices",
-                time=time)
+                "MoItems", "Devices")
         locations = dict(
                 zip([(data.get('LocationId')) for data in locations_data],
                     [data.get('Name') for data in locations_data]))
@@ -465,8 +456,6 @@ class CityAirRequest:
             period could be five mins, twenty mins, hour, day
         verbose: bool, default True:
             whether to show progress bar
-        time: bool, default False
-            whether to print how long it took to gather data
         -------"""
         filter_ = {'TakeCount'   : take_count,
                    'MoId'        : station_id,
@@ -481,7 +470,7 @@ class CityAirRequest:
             filter_['FilterType'] = 3
             filter_['SkipFromLast'] = 0
         packets = self._make_request(STATIONS_PACKETS_URL, 'Packets',
-                                     Filter=filter_, time=time, silent=False)
+                                     Filter=filter_, silent=False)
         df = pd.DataFrame.from_records(packets)
         records = []
         for packets in df['DataJson']:

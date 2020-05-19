@@ -1,7 +1,9 @@
+import logging
+
 from cityair_api import CityAirRequest, CAR
 import pandas as pd
 import getpass
-
+logging.basicConfig(level=logging.DEBUG)
 TAKE_COUNT = 10
 START_DATE = '19.10.2019'
 FINISH_DATE = '21.10.2019'
