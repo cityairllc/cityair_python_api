@@ -27,7 +27,7 @@ from .settings import (
 )
 from .utils import (
     MAIN_DEVICE_PARAMS, MAIN_STATION_PARAMS, RIGHT_PARAMS_NAMES,
-    USELESS_COLS, add_progress_bar, debugit,
+    USELESS_COLS, add_progress_bar,
     parse_checkinfo, prep_df, prep_dicts, timeit, to_date,
     unpack_cols,
 )
@@ -147,7 +147,6 @@ class CityAirRequest:
                     res[device] = [station.copy()]
         return res
 
-    @debugit
     @timeit
     def _make_request(self, method_url: str, *keys: str,
                       silent: bool = True, **kwargs: object):
@@ -198,7 +197,7 @@ class CityAirRequest:
 
     def get_devices(self, format: str = 'list', include_offline: bool = True,
                     include_children: bool = False,
-                    time=False, debug=False) \
+                    time=False) \
             -> Union[List[str], pd.DataFrame, List[dict]]:
         """
         Provides devices information in various formats
@@ -218,11 +217,8 @@ class CityAirRequest:
             whether to include info of child devices to the output
         time: bool, default False
             whether to print how long it took to gather data
-        debug: bool, default False
-            whether to print raw request and response data
         -------"""
-        devices_data = self._make_request(DEVICES_URL, "Devices",
-                                          time=time, debug=debug)
+        devices_data = self._make_request(DEVICES_URL, "Devices", time=time)
         df = pd.DataFrame.from_records(devices_data)
         if format == 'raw':
             return df
@@ -267,7 +263,7 @@ class CityAirRequest:
                         finish_date=None, last_packet_id=None,
                         take_count: int = 500, all_cols=False,
                         format: str = 'df', verbose=True,
-                        time=False, debug=False) \
+                        time=False) \
             -> Union[pd.DataFrame, Dict[str, pd.DataFrame]]:
         """
         Provides data from the selected device
@@ -299,8 +295,6 @@ class CityAirRequest:
             whether to show progress bar
         time: bool, default False
             whether to print how long it took to gather data
-        debug: bool, default False
-            whether to print raw request and response data
         -------"""
 
         device_id = self._device_by_serial.get(serial_number)
@@ -321,8 +315,7 @@ class CityAirRequest:
             filter_['FilterType'] = 3
             filter_['Skip'] = 0
         packets = self._make_request(DEVICES_PACKETS_URL, 'Packets',
-                                     Filter=filter_, time=time, silent=False,
-                                     debug=debug)
+                                     Filter=filter_, time=time, silent=False)
         df = pd.DataFrame.from_records(packets)
 
         df = unpack_cols(df, ['ServiceData'])
@@ -388,7 +381,7 @@ class CityAirRequest:
                     f"formats are: 'df', 'dict'")
 
     def get_stations(self, format: str = 'list', include_offline: bool = True,
-                     time=False, debug=False) \
+                     time=False) \
             -> Union[List[str], pd.DataFrame, List[dict]]:
         """
         Provides devices information in various formats
@@ -406,13 +399,11 @@ class CityAirRequest:
            whether to include offline devices to the output
         time: bool, default False
            whether to print how long it took to gather data
-        debug: bool, default False
-           whether to print raw request and response data
         -------"""
         locations_data, stations_data, devices_data = self._make_request(
                 STATIONS_URL, "Locations",
                 "MoItems", "Devices",
-                time=time, debug=debug)
+                time=time)
         locations = dict(
                 zip([(data.get('LocationId')) for data in locations_data],
                     [data.get('Name') for data in locations_data]))
@@ -459,7 +450,7 @@ class CityAirRequest:
                          finish_date=datetime.datetime.now(),
                          take_count: int = 1000,
                          period: Period = Period.TWENTY_MINS, verbose=True,
-                         time=False, debug=False) -> pd.DataFrame:
+                         time=False) -> pd.DataFrame:
         """
         Provides data from the selected station
         Parameters
@@ -476,8 +467,6 @@ class CityAirRequest:
             whether to show progress bar
         time: bool, default False
             whether to print how long it took to gather data
-        debug: bool, default False
-            whether to print raw request and response data
         -------"""
         filter_ = {'TakeCount'   : take_count,
                    'MoId'        : station_id,
@@ -492,8 +481,7 @@ class CityAirRequest:
             filter_['FilterType'] = 3
             filter_['SkipFromLast'] = 0
         packets = self._make_request(STATIONS_PACKETS_URL, 'Packets',
-                                     Filter=filter_, time=time, debug=debug,
-                                     silent=False)
+                                     Filter=filter_, time=time, silent=False)
         df = pd.DataFrame.from_records(packets)
         records = []
         for packets in df['DataJson']:

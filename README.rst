@@ -56,7 +56,6 @@ TODO
 * refactor
     * move settings to separate file
     * refactor useless_cols mess
-    * remove timeit, debugit
 * deploy
     * precommit test
     * autodeploy to pip

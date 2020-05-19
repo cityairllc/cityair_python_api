@@ -1,13 +1,11 @@
 import datetime
-import getpass
 import logging
-import os
 import re
 import sys
 import time
 from collections import defaultdict
 from functools import wraps
-from typing import List, Tuple, Union, Optional
+from typing import List, Optional, Union
 
 import pandas as pd
 import progressbar
@@ -262,24 +260,3 @@ def timeit(method):
 
     return timed
 
-
-def debugit(method):
-    """
-    Decorator to print raw response and request data
-
-    """
-
-    @wraps(method)
-    def print_request_response(*args, **kwargs):
-        to_debug = kwargs.pop('debug', False)
-        obj = args[0]
-        body = {"Token": getattr(obj, 'token'), **kwargs}
-        url = f"{getattr(obj, 'host_url', None)}/{args[1]}"
-        if to_debug:
-            print(f"url: {url}\nrequest_body: {body}")
-        result = method(*args, **kwargs)
-        if to_debug:
-            print(f"response: {result}")
-        return result
-
-    return print_request_response
