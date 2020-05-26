@@ -473,14 +473,13 @@ class CityAirRequest:
                                      Filter=filter_, silent=False)
         df = pd.DataFrame.from_records(packets)
         records = []
-        for packets in df['DataJson']:
-            packets = json.loads(packets)
+        for packets in df['Data']:
             records.append(dict(zip(
-                    [self._stations_value_types.get(packet['Id'], 'undefined')
+                    [self._stations_value_types.get(packet['VT'], 'undefined')
                      for packet in packets],
-                    [packet['Sum'] / packet['Cnt'] for packet in packets])))
+                    [packet['V'] for packet in packets])))
         df = df.assign(**pd.DataFrame.from_records(records))
-        df = prep_df(df.drop(['DataJson'], axis=1), index_col='date')
+        df = prep_df(df.drop(['Data'], axis=1), index_col='date')
         return df
 
     def get_locations(self) -> List[dict]:

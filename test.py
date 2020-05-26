@@ -9,6 +9,11 @@ START_DATE = '19.10.2019'
 FINISH_DATE = '21.10.2019'
 R= CAR()
 
+df = R.get_station_data(223)
+print(df)
+import sys
+sys.exit()
+
 devices = R.get_devices(include_children=True)
 print('\n\n----------------------devices as list-------------------')
 print(devices[:2])
