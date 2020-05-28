@@ -94,7 +94,7 @@ class CityAirRequest:
                     [data.get('TypeName') for data in value_types_data]))
         # adding "_" to not unique value type names
         name_counts = Counter(value_types.values())
-        for id, name in reversed(value_types.items()):
+        for id, name in value_types.items():
             current_count = name_counts[name]
             if current_count > 1:
                 value_types[id] = name + (current_count - 1) * "_"
