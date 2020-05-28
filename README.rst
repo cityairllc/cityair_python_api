@@ -15,8 +15,12 @@ Example
 first you need to init the CityAirRequest object passing your login and password: ::
 
      from cityair_api import CityAirRequest
+     CITYAIR_TOKEN = "0695b654-b9cf-47c8-a21e-ab9dc2d95fd3"
+     r = CityAirRequest(CITYAIR_TOKEN)
 
-     r = CityAirRequest('CityAir_demo', 'cityAirDemoPassword231')
+if CITYAIR_TOKEN is not passed, r will try to get it from environmental variables, then it will prompt for token
+
+you could get CITYAIR_TOKEN from your personal page at cityair.io or you could look up for it in the web-browser dev tools while you're logging in
 
 Getting data from stations
 ****************************
