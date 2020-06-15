@@ -62,4 +62,4 @@ TODO
     * refactor useless_cols mess
 * deploy
     * precommit test
-    * autodeploy to pip
+    * autodeploy to pip - GitLab CI
