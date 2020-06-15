@@ -260,7 +260,7 @@ class CityAirRequest:
     def get_device_data(self, serial_number: str, start_date=None,
                         finish_date=None, last_packet_id=None,
                         take_count: int = 500, all_cols=False,
-                        format: str = 'df', verbose=True) \
+                        format: str = 'df') \
             -> Union[pd.DataFrame, Dict[str, pd.DataFrame]]:
         """
         Provides data from the selected device
@@ -375,8 +375,9 @@ class CityAirRequest:
                     f"Unknown option of format argument: {format}. Available "
                     f"formats are: 'df', 'dict'")
 
-    def get_stations(self, format: str = 'list', include_offline: bool =
-    True) -> Union[List[str], pd.DataFrame, List[dict]]:
+    def get_stations(self, format: str = 'list',
+                     include_offline: bool = True
+                     ) -> Union[List[str], pd.DataFrame, List[dict]]:
         """
         Provides devices information in various formats
 
@@ -440,8 +441,7 @@ class CityAirRequest:
     def get_station_data(self, station_id: int, start_date=None,
                          finish_date=datetime.datetime.now(),
                          take_count: int = 1000,
-                         period: Period = Period.TWENTY_MINS, verbose=True,
-                         time=False) -> pd.DataFrame:
+                         period: Period = Period.TWENTY_MINS) -> pd.DataFrame:
         """
         Provides data from the selected station
         Parameters

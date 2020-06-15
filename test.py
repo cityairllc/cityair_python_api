@@ -11,9 +11,9 @@ FINISH_DATE = '21.10.2019'
 R= CAR()
 df = R.get_device_data("CA01PM0000FE", take_count=10)
 print(df.columns)
-import sys
-sys.exit()
-
+# import sys
+# sys.exit()
+devices = R.get_devices()
 # devices = R.get_devices(include_children=True)
 print('\n\n----------------------devices as list-------------------')
 print(devices[:2])
@@ -68,7 +68,7 @@ print(f'\n\n----------------getting station {station_id} data in debug mode-----
 df = R.get_station_data(station_id,
                         start_date=START_DATE,
                         take_count=2,
-                        debug=True)
+                        )
 print(df.head())
 
 
