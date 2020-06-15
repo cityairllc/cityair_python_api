@@ -51,7 +51,8 @@ RIGHT_PARAMS_NAMES = {'FlagPs220'            : '220',
                       'GmtHour'              : 'gmt_hour_diff',
                       'PublishOnMap'         : 'is_public',
                       'NameRu'               : 'name_ru',
-                      'PacketId'             : 'packet_id'
+                      'PacketId'             : 'packet_id',
+                      "Humidity_"            : "RH"
                       }
 USELESS_COLS = ['220', 'BatLow', 'receive_date', 'GeoInfo', 'Geo', 'Date',
                 'SendDate', 'ResetMoData', 'description', 'coordinates',
@@ -245,15 +246,17 @@ def timeit(method):
     Decorator to print time elapsed
 
     """
+
     @wraps(method)
     def timed(*args, **kwargs):
         ts = time.time()
         result = method(*args, **kwargs)
         te = time.time()
 
-        logging.debug(f"{te - ts:.2f} seconds took to {method.__name__} of size"
-                  f"{sys.getsizeof(result) / 1000: .2f} KB\nargs were"
-                  f" {', '.join(map(str, args[1:]))}\nkwargs were: {kwargs}")
+        logging.debug(
+            f"{te - ts:.2f} seconds took to {method.__name__} of size"
+            f"{sys.getsizeof(result) / 1000: .2f} KB\nargs were"
+            f" {', '.join(map(str, args[1:]))}\nkwargs were: {kwargs}")
         return result
-    return timed
 
+    return timed

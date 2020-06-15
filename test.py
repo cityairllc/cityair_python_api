@@ -9,13 +9,12 @@ TAKE_COUNT = 10
 START_DATE = '19.10.2019'
 FINISH_DATE = '21.10.2019'
 R= CAR()
-
-df = R.get_station_data(223)
-print(df)
+df = R.get_device_data("CA01PM0000FE", take_count=10)
+print(df.columns)
 import sys
 sys.exit()
 
-devices = R.get_devices(include_children=True)
+# devices = R.get_devices(include_children=True)
 print('\n\n----------------------devices as list-------------------')
 print(devices[:2])
 assert isinstance(devices[0], str), f'Serial number should be string got {type(devices[0])} instead'
