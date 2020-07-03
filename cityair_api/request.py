@@ -635,7 +635,7 @@ class CityAirRequest:
             return None
 
     def get_last_checkinfo(self, serial_number: str) -> Optional[List[dict]]:
-        f"""
+        """
         retrieves filtered log records and extracts checkinfo sent by device
         Parameters
         ----------

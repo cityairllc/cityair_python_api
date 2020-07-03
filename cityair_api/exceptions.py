@@ -51,8 +51,8 @@ class EmptyDataException(CityAirException):
     """
 
     def __init__(self, response: requests.models.Response = None, item=None):
-        message = (f"No data for the request. Try changing query arguments, "
-                   f"i.e. start_date or finish_date.")
+        message = ("No data for the request. Try changing query arguments, "
+                   "i.e. start_date or finish_date.")
         if response:
             body = anonymize_request(
                     json.loads(response.request.body.decode('utf-8')))
