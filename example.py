@@ -1,4 +1,5 @@
 from cityair_api import CityAirRequest
+
 login = 'CityAir_demo'
 psw = 'cityAirDemoPassword231'
 
@@ -13,7 +14,8 @@ stations = r.get_stations()
 # dates may be in datetime or string formats
 # period is time resolution and may be '5min', '20min', '1hr','24hr'
 station_id = stations[0]
-df_station = r.get_station_data(station_id, start_date='2018.12.01', finish_date='2018.12.01')
+df_station = r.get_station_data(station_id, start_date='2018.12.01',
+                                finish_date='2018.12.01')
 
 # also you can get access to data directly from the device
 serials = r.get_devices()

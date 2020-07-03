@@ -3,8 +3,6 @@ import json
 import requests
 
 
-
-
 def anonymize_request(body: dict) -> dict:
     res = body.copy()
     res.update(User='***', Pwd='***')
@@ -57,7 +55,7 @@ class EmptyDataException(CityAirException):
                    f"i.e. start_date or finish_date.")
         if response:
             body = anonymize_request(
-                json.loads(response.request.body.decode('utf-8')))
+                    json.loads(response.request.body.decode('utf-8')))
             message += f"\nurl: {response.url}\nrequest body: {body}\n"
         if item:
             message = message.replace("request", f"{item}")

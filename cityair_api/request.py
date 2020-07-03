@@ -295,8 +295,10 @@ class CityAirRequest:
         device_id = self._device_by_serial.get(serial_number)
         if not device_id:
             raise NoAccessException(serial_number)
-        filter_ = {'Take'    : take_count,
-                   'DeviceId': device_id}
+        filter_ = {
+                'Take': take_count,
+                'DeviceId': device_id
+        }
         if last_packet_id:
             filter_['FilterType'] = 2
             filter_['LastPacketId'] = last_packet_id
@@ -400,8 +402,8 @@ class CityAirRequest:
                 zip([(data.get('LocationId')) for data in locations_data],
                     [data.get('Name') for data in locations_data]))
         for device_data in devices_data:
-            self._device_by_id.update({device_data.get(
-                    'DeviceId'): device_data.get('SerialNumber')})
+            self._device_by_id.update(
+                    {device_data['DeviceId']: device_data['SerialNumber']})
         df = pd.DataFrame.from_records(stations_data)
         if format == 'raw':
             return df
@@ -457,9 +459,11 @@ class CityAirRequest:
         verbose: bool, default True:
             whether to show progress bar
         -------"""
-        filter_ = {'TakeCount'   : take_count,
-                   'MoId'        : station_id,
-                   'IntervalType': period.value}
+        filter_ = {
+                'TakeCount': take_count,
+                'MoId': station_id,
+                'IntervalType': period.value
+        }
         if start_date:
             filter_['FilterType'] = 1
             filter_['BeginTime'] = to_date(start_date).isoformat()
@@ -531,13 +535,13 @@ class CityAirRequest:
         Parameters
         ----------
         serial_number: str
-            serial of the device, also could be any string for backend to 
+            serial of the device, also could be any string for backend to
             filter
             log messages
         type: str {'packet', 'checkinfo', 'custom'}, default 'packet'
             * 'packet' - searching log messages for raw_packets sent by device
             * 'checkinfo' - searching for check info packets
-            * 'custom' - to auto filtering is performed, extract_pattern and 
+            * 'custom' - to auto filtering is performed, extract_pattern and
               search_pattern args should be provided to perform filtering
         start_date: datetime or str, default None
         finish_date: datetime or str, default None
@@ -545,12 +549,12 @@ class CityAirRequest:
             packets count are fetched before filtering
         app_sender_ids: dict, default [{"AppId": 4, "SenderIds": [23]},
                                        {"AppId": 2, "SenderIds": [7]}]
-            passed to backend for filtering, 
+            passed to backend for filtering,
         to_include_date: bool, default False
-            if to include date to the return           
+            if to include date to the return
         extract_pattern: str, default "#([^']*)##"
             regex for extraction of packet from log message
-        filter_pattern: str, r"#PT#\d+" if type='packet'
+        filter_pattern: str, r"#PT#d+" if type='packet'
                              "#CheckInfo#{[^']*}" if type='checkinfo'
             regex for filtering log records
         Returns
@@ -572,12 +576,14 @@ class CityAirRequest:
         filter_re = re.compile(filter_pattern)
         extract_re = re.compile(extract_pattern)
 
-        filter_ = {'AppSenderIds'       : app_sender_ids,
-                   'BeginDate'          : to_date(start_date, format='str'),
-                   'EndDate'            : to_date(finish_date, format='str'),
-                   'EventTypeIds'       : [],
-                   'MaxLogItemsCount'   : take_count,
-                   'MessageFilterString': serial_number}
+        filter_ = {
+                'AppSenderIds': app_sender_ids,
+                'BeginDate': to_date(start_date, format='str'),
+                'EndDate': to_date(finish_date, format='str'),
+                'EventTypeIds': [],
+                'MaxLogItemsCount': take_count,
+                'MessageFilterString': serial_number
+        }
         log_items = self._make_request(LOGS_URL, "LogsItems", Filter=filter_)
         filtered_log_items = filter(
                 lambda item: filter_re.search(item['MessageShort']),
@@ -641,7 +647,7 @@ class CityAirRequest:
         """
         msg = (self.get_logs(serial_number, type="checkinfo", take_count=1))
         try:
-            return parse_checkinfo(next((msg)))
+            return parse_checkinfo(next(msg))
         except StopIteration:
             return None
 

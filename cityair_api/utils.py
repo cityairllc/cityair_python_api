@@ -14,46 +14,47 @@ import pytz
 from cityair_api.settings import CHECKINFO_PARSE_PATTERN
 from .exceptions import EmptyDataException
 
-RIGHT_PARAMS_NAMES = {'FlagPs220'            : '220',
-                      'RecvDate'             : 'receive_date', 'Ps220': '220',
-                      'GsmRssi'              : 'rssi',
-                      'SendDate'             : 'date', 'Temperature': 'T',
-                      'BatLow'               : 'is_bat_low',
-                      'Humidity'             : 'RH', 'Pressure': 'P',
-                      'ChildDevices'         : 'children',
-                      'DataDeliveryPeriodSec': 'delivery_period',
-                      'Description'          : 'description',
-                      'DeviceCheckInfos'     : 'check_infos',
-                      'DeviceFirstDate'      : 'first_packet_date',
-                      'DeviceIMEI'           : 'IMEI',
-                      'DeviceIMSI'           : 'IMSI',
-                      'DeviceLastDate'       : 'last_packet_date',
-                      'DeviceLastGeo'        : 'coordinates',
-                      'DeviceName'           : 'name',
-                      'FlagBatLow'           : 'is_bat_low', 'DeviceId': 'id',
-                      'IsOffline'            : 'is_offline',
-                      'SerialNumber'         : 'serial_number',
-                      'SoftwareVersion'      : 'software',
-                      'SourceType'           : 'type', 'TagIds': 'tags',
-                      'MoId'                 : 'id',
-                      'Name'                 : 'name',
-                      'PublishName'          : 'internal_name',
-                      'PublishNameRu'        : 'name_ru',
-                      'ManualDeviceLinks'    : 'devices_manual',
-                      'DeviceLink'           : 'devices_auto',
-                      'GmtOffset'            : 'gmt_offset',
-                      'DotItem'              : 'coordinates',
-                      'Latitude'             : 'latitude',
-                      'Longitude'            : 'longitude',
-                      'LocationId'           : 'location',
-                      'GeoInfo'              : 'coordinates',
-                      'Geo'                  : 'coordinates', 'DataAqi': 'AQI',
-                      'GmtHour'              : 'gmt_hour_diff',
-                      'PublishOnMap'         : 'is_public',
-                      'NameRu'               : 'name_ru',
-                      'PacketId'             : 'packet_id',
-                      "Humidity_"            : "RH"
-                      }
+RIGHT_PARAMS_NAMES = {
+        'FlagPs220': '220',
+        'RecvDate': 'receive_date', 'Ps220': '220',
+        'GsmRssi': 'rssi',
+        'SendDate': 'date', 'Temperature': 'T',
+        'BatLow': 'is_bat_low',
+        'Humidity': 'RH', 'Pressure': 'P',
+        'ChildDevices': 'children',
+        'DataDeliveryPeriodSec': 'delivery_period',
+        'Description': 'description',
+        'DeviceCheckInfos': 'check_infos',
+        'DeviceFirstDate': 'first_packet_date',
+        'DeviceIMEI': 'IMEI',
+        'DeviceIMSI': 'IMSI',
+        'DeviceLastDate': 'last_packet_date',
+        'DeviceLastGeo': 'coordinates',
+        'DeviceName': 'name',
+        'FlagBatLow': 'is_bat_low', 'DeviceId': 'id',
+        'IsOffline': 'is_offline',
+        'SerialNumber': 'serial_number',
+        'SoftwareVersion': 'software',
+        'SourceType': 'type', 'TagIds': 'tags',
+        'MoId': 'id',
+        'Name': 'name',
+        'PublishName': 'internal_name',
+        'PublishNameRu': 'name_ru',
+        'ManualDeviceLinks': 'devices_manual',
+        'DeviceLink': 'devices_auto',
+        'GmtOffset': 'gmt_offset',
+        'DotItem': 'coordinates',
+        'Latitude': 'latitude',
+        'Longitude': 'longitude',
+        'LocationId': 'location',
+        'GeoInfo': 'coordinates',
+        'Geo': 'coordinates', 'DataAqi': 'AQI',
+        'GmtHour': 'gmt_hour_diff',
+        'PublishOnMap': 'is_public',
+        'NameRu': 'name_ru',
+        'PacketId': 'packet_id',
+        "Humidity_": "RH"
+}
 USELESS_COLS = ['220', 'BatLow', 'receive_date', 'GeoInfo', 'Geo', 'Date',
                 'SendDate', 'ResetMoData', 'description', 'coordinates',
                 'rssi', 'FlagBatLowHasFailed', 'FlagPs220HasFailed',
@@ -77,8 +78,8 @@ def add_progress_bar(method):
     Decorator to display progress bar
 
     """
-    PROGRESS_SCALER = 10 ** 6
-    DEFAULT_TAKE_COUNT = 500
+    progress_scaler = 10 ** 6
+    default_take_count = 500
 
     @wraps(method)
     def progressed(*args, **kwargs):
@@ -88,9 +89,9 @@ def add_progress_bar(method):
         finish_date = to_date(kwargs.get('finish_date',
                                          datetime.datetime.utcnow().replace(
                                                  tzinfo=pytz.utc)))
-        kwargs.update(take_count=kwargs.get('take_count', DEFAULT_TAKE_COUNT))
+        kwargs.update(take_count=kwargs.get('take_count', default_take_count))
         bar = progressbar.ProgressBar(max_value=(finish_date - start_date)
-                                      .total_seconds() / PROGRESS_SCALER,
+                                      .total_seconds() / progress_scaler,
                                       widgets=[
                                               f"{args[1]}",
                                               ': ',
@@ -122,7 +123,7 @@ def add_progress_bar(method):
                     start_date=start_date + datetime.timedelta(seconds=30))
             bar.update(bar.max_value - (
                     finish_date - start_date).total_seconds() /
-                       PROGRESS_SCALER)
+                       progress_scaler)
         size = len(res) if isinstance(res, pd.DataFrame) \
             else max(map(len, res.values()))
         logging.info(f'finished acquiring {args[1]} data of size {size}')
@@ -147,7 +148,7 @@ def prep_dicts(dicts, newkeys, keys_to_drop, dropna=True):
         for key, value in zip(d.keys(), d.values()):
             if key in keys_to_drop:
                 continue
-            if dropna and value == None:
+            if dropna and value is None:
                 continue
             if key == 'is_offline':
                 new_dict['is_online'] = not value
@@ -219,7 +220,7 @@ def prep_df(df: pd.DataFrame, right_param_names: dict = RIGHT_PARAMS_NAMES,
                                         dropna])
     try:
         res = unpack_cols(res, cols_to_unpack)
-    except (KeyError, TypeError) as e:
+    except (KeyError, TypeError):
         pass
     if dropna:
         res.dropna(how='all', axis=1, inplace=True)
@@ -229,7 +230,7 @@ def prep_df(df: pd.DataFrame, right_param_names: dict = RIGHT_PARAMS_NAMES,
     try:
         res['is_online'] = ~ res['is_offline']
         res.drop('is_offline', axis=1, inplace=True)
-    except KeyError as e:
+    except KeyError:
         pass
     if index_col and index_col in res.columns:
         res.set_index(index_col, inplace=True)
@@ -251,9 +252,9 @@ def timeit(method):
         te = time.time()
 
         logging.debug(
-            f"{te - ts:.2f} seconds took to {method.__name__} of size"
-            f"{sys.getsizeof(result) / 1000: .2f} KB\nargs were"
-            f" {', '.join(map(str, args[1:]))}\nkwargs were: {kwargs}")
+                f"{te - ts:.2f} seconds took to {method.__name__} of size"
+                f"{sys.getsizeof(result) / 1000: .2f} KB\nargs were"
+                f" {', '.join(map(str, args[1:]))}\nkwargs were: {kwargs}")
         return result
 
     return timed
