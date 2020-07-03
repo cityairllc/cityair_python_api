@@ -15,7 +15,7 @@ pytest:
   stage: test
   image: python:3.8-slim
   before_script:
-    - pip install -r requirements.txt
+    - pip install .
     - pip install pytest
   script:
     - pytest
