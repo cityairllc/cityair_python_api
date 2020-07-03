@@ -20,8 +20,6 @@ pytest:
     - echo "192.168.2.14 cityair.io my.cityair.io" >> /etc/hosts
   script:
     - pytest
-    - echo $CITYAIR_TOKEN
-    - echo $PYPI_USER
 
 pypi:
   stage: deploy
