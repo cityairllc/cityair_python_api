@@ -3,7 +3,7 @@ import pandas as pd
 
 
 class TestGetDevices:
-    r = CAR()
+    r = CAR(verify_ssl=False)
 
     def test_device_list(self):
         serials = self.r.get_devices()
