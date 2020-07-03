@@ -9,12 +9,13 @@ flake8:
   before_script:
     - pip install flake8
   script:
-    - flake8 --exclude=./cityair_api/__init__.py -v --per-file-ignores='cityair_api/__init__.py:F401 setup.py:E121'
+    - flake8 --exclude=tests -v --per-file-ignores='cityair_api/__init__.py:F401 setup.py:E121'
 
 pytest:
   stage: test
-  image: python:3.7-alpine
+  image: python:3.8-slim
   before_script:
+    - pip install -r requirements.txt
     - pip install pytest
   script:
     - pytest
