@@ -17,6 +17,7 @@ pytest:
   before_script:
     - pip install .
     - pip install pytest
+    - echo "192.168.2.14       cityair.io" >> /etc/hosts
   script:
     - pytest
     - echo $CITYAIR_TOKEN
