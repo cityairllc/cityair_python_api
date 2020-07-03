@@ -60,6 +60,3 @@ TODO
 * refactor
     * move settings to separate file
     * refactor useless_cols mess
-* deploy
-    * precommit test
-    * autodeploy to pip - GitLab CI
