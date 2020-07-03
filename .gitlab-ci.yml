@@ -3,33 +3,33 @@ stages:
   - test
   - deploy
 
-
-
 flake8:
   stage: lint
   image: python:3.7-alpine
   before_script:
-    - pip install -q flake8
+    - pip install flake8
   script:
     - flake8 --exclude=./cityair_api/__init__.py -v --per-file-ignores='cityair_api/__init__.py:F401 setup.py:E121'
 
-
 pytest:
   stage: test
-  image: python:3.7
-  tags:
-    - docker
-  services:
-    - docker
+  image: python:3.7-alpine
   before_script:
-    - docker-compose -f local.yml build
-    - docker-compose -f local.yml run --rm django python manage.py migrate
-    - docker-compose -f local.yml up -d
+    - pip install pytest
   script:
-    - docker-compose -f local.yml run django pytest
+    - pytest
 
-# pip install -U
-# copy service file
-# enable
-# daemon-reload
-# systemctl restart
+pypi:
+  stage: deploy
+  only:
+    - master
+  image: python:3.7-alpine
+  before_script:
+    - pip install twine
+  script:
+    - python setup.py sdist
+    - twine upload dist/* -u $PYPI_USER -p $PYPI_PASSWORD
+
+
+
+
