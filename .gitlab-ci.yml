@@ -25,7 +25,7 @@ pypi:
   stage: deploy
   only:
     - master
-  image: python:3.7-alpine
+  image: python:3.8-slim
   before_script:
     - pip install twine
   script:
