@@ -18,6 +18,8 @@ pytest:
     - pip install pytest
   script:
     - pytest
+    - echo $CITYAIR_TOKEN
+    - echo $PYPI_USER
 
 pypi:
   stage: deploy
