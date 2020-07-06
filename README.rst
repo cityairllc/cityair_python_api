@@ -57,6 +57,7 @@ TODO
 * tests
     * required fields with (all_cols=True/False)
     * getting data with different settings
+    * get_data with different start/finish - unaware, None, str
 * refactor
     * move settings to separate file
     * refactor useless_cols mess
