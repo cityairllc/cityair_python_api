@@ -89,6 +89,8 @@ def add_progress_bar(method):
         finish_date = to_date(kwargs.get('finish_date',
                                          datetime.datetime.utcnow().replace(
                                                  tzinfo=pytz.utc)))
+        start_date = start_date.replace(tzinfo=None)
+        finish_date = finish_date.replace(tzinfo=None)
         kwargs.update(take_count=kwargs.get('take_count', default_take_count))
         bar = progressbar.ProgressBar(max_value=(finish_date - start_date)
                                       .total_seconds() / progress_scaler,
