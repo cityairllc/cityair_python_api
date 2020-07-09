@@ -258,10 +258,10 @@ class CityAirRequest:
 
     @add_progress_bar
     def get_device_data(self, serial_number: str, start_date=None,
-                        finish_date=None, last_packet_id=None, skip_count:int = 0,
-                        take_count: int = 500, all_cols=False,
-                        format: str = 'df') \
-            -> Union[pd.DataFrame, Dict[str, pd.DataFrame]]:
+                        finish_date=None, last_packet_id=None,
+                        skip_count: int = 0, take_count: int = 500,
+                        all_cols=False, format: str = 'df') -> Union[
+        pd.DataFrame, Dict[str, pd.DataFrame]]:
         """
         Provides data from the selected device
 
