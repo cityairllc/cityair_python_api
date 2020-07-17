@@ -4,9 +4,9 @@ import requests
 
 
 def anonymize_request(body: dict) -> dict:
-    res = body.copy()
-    res.update(User='***', Pwd='***')
-    return res
+    request = body.copy()
+    request.update(Token="***")
+    return request
 
 
 class CityAirException(Exception):
@@ -17,7 +17,6 @@ class NoAccessException(CityAirException):
     """
     raised when the requested device is not assigned to the user
     """
-
     def __init__(self, serial_number: str):
         message = (f"Sorry, you don't have access to the device "
                    f"{serial_number}. Maybe you're trying to access "
@@ -55,7 +54,7 @@ class EmptyDataException(CityAirException):
                    "i.e. start_date or finish_date.")
         if response:
             body = anonymize_request(
-                    json.loads(response.request.body.decode('utf-8')))
+                json.loads(response.request.body.decode('utf-8')))
             message += f"\nurl: {response.url}\nrequest body: {body}\n"
         if item:
             message = message.replace("request", f"{item}")
