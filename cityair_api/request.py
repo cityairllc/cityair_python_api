@@ -16,7 +16,7 @@ from cached_property import cached_property
 from .exceptions import (
     CityAirException, EmptyDataException, NoAccessException, ServerException,
     anonymize_request,
-)
+    TransportException)
 from .settings import (
     DEFAULT_HOST, DEVICES_PACKETS_URL, DEVICES_URL,
     FULL_LOGS_URL, LOGS_URL, LOG_CHECKINFO_ADDITIONAL_FILTER_SUFFIX,
@@ -167,9 +167,12 @@ class CityAirRequest:
         -------"""
         body = {"Token": getattr(self, 'token'), **kwargs}
         url = f"{self.host_url}/{method_url}"
-        response = requests.post(url, json=body, timeout=self.timeout,
-                                 verify=self.verify_ssl)
-        logging.debug("post request to url: %s\nbody:%s", url, pformat(body))
+        try:
+            response = requests.post(url, json=body, timeout=self.timeout,
+                                     verify=self.verify_ssl)
+            logging.debug("post request to url: %s\nbody:%s", url, pformat(body))
+        except requests.exceptions.ConnectionError as e:
+            raise CityAirException(f"Got connection error: {e}") from e
         try:
             response.raise_for_status()
         except requests.exceptions.HTTPError as e:
@@ -177,8 +180,7 @@ class CityAirRequest:
         try:
             response_json = response.json()
         except json.JSONDecodeError as e:
-            raise CityAirException(
-                    f"Suddenly got empty json. Couldn't decode it: {e}") from e
+            raise TransportException(response) from e
         if response_json.get('IsError'):
             raise ServerException(response)
         response_data = response_json.get('Result')

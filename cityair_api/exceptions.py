@@ -17,6 +17,7 @@ class NoAccessException(CityAirException):
     """
     raised when the requested device is not assigned to the user
     """
+
     def __init__(self, serial_number: str):
         message = (f"Sorry, you don't have access to the device "
                    f"{serial_number}. Maybe you're trying to access "
@@ -25,17 +26,35 @@ class NoAccessException(CityAirException):
         super().__init__(message)
 
 
-class ServerException(CityAirException):
+class TransportException(CityAirException):
     """
-    unknown cityair backend exception
-    raised when request contains 'IsError'=True
+    raised when request contains bad json
     """
 
     def __init__(self, response: requests.models.Response):
-        body = json.loads(response.request.body.decode('utf-8'))
-        body.update(User='***', Pwd='***')
-        message = (f"Error while getting data:\nurl: "
-                   f"{response.url}\nrequest body: {body}\n")
+        body = anonymize_request(
+            json.loads(response.request.body.decode('utf-8')))
+        message = (f"Error while getting data:\n"
+                   f"url: {response.url}\n"
+                   f"request body: {body}\n"
+                   f"request headers: {response.headers}\n"
+                   f"response code: {response.status_code}"
+                   f"response headers: {response.headers}"
+                   f"response content: {response.content}")
+        super().__init__(message)
+
+
+class ServerException(CityAirException):
+    """
+    cityair backend exception. raised when request contains 'IsError'=True
+    """
+
+    def __init__(self, response: requests.models.Response):
+        body = anonymize_request(
+            json.loads(response.request.body.decode('utf-8')))
+        message = (f"Error while getting data:\n"
+                   f"url: {response.url}\n"
+                   f"request body: {body}\n")
         try:
             message += (f"{response.json()['ErrorMessage']}:\n"
                         f"{response.json().get('ErrorMessageDetals')}")
