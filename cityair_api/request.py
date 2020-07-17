@@ -170,7 +170,8 @@ class CityAirRequest:
         try:
             response = requests.post(url, json=body, timeout=self.timeout,
                                      verify=self.verify_ssl)
-            logging.debug("post request to url: %s\nbody:%s", url, pformat(body))
+            logging.debug("post request to url: %s\n"
+                          "body:%s", url, pformat(body))
         except requests.exceptions.ConnectionError as e:
             raise CityAirException(f"Got connection error: {e}") from e
         try:
