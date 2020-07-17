@@ -261,9 +261,9 @@ class CityAirRequest:
     @add_progress_bar
     def get_device_data(self, serial_number: str, start_date=None,
                         finish_date=None, last_packet_id=None,
-                        take_count: int = 500, all_cols=False,
-                        format: str = 'df') \
-            -> Union[pd.DataFrame, Dict[str, pd.DataFrame]]:
+                        skip_count: int = 0, take_count: int = 500,
+                        all_cols=False, format: str = 'df'
+                        ) -> Union[pd.DataFrame, Dict[str, pd.DataFrame]]:
         """
         Provides data from the selected device
 
@@ -275,6 +275,9 @@ class CityAirRequest:
             dates on which data is being queried
         last_packet_id: int, default None
             if passed, packets will be queried starting from this packet_id
+        skip_count: int, default 0
+            if last_packet_id is passed, number of packets to skip form last
+            packet id
         take_count: int, default 1000
             count of packets which is requested from the server
         all_cols: bool, default False
@@ -312,7 +315,7 @@ class CityAirRequest:
                 datetime.datetime.now().isoformat()
         else:
             filter_['FilterType'] = 3
-            filter_['Skip'] = 0
+            filter_['Skip'] = skip_count
         packets = self._make_request(DEVICES_PACKETS_URL, 'Packets',
                                      Filter=filter_, silent=False)
         df = pd.DataFrame.from_records(packets)
