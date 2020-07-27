@@ -5,8 +5,8 @@ DEVICES_URL = "DevicesApi2/GetDevices"
 DEVICES_PACKETS_URL = "DevicesApi2/GetPackets"
 STATIONS_URL = "MoApi2/GetMoItems"
 STATIONS_PACKETS_URL = "MoApi2/GetMoPackets"
-LOGS_URL = "/LoggerApi/GetLogItems"
-FULL_LOGS_URL = "/LoggerApi/GetFullLogItems"
+LOGS_URL = "LoggerApi/GetLogItems"
+FULL_LOGS_URL = "LoggerApi/GetFullLogItems"
 
 PACKET_SENDER_IDS = [{"AppId": 4, "SenderIds": [23]},
                      {"AppId": 2, "SenderIds": [7]}]  # for logs lookups

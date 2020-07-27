@@ -16,7 +16,8 @@ from cached_property import cached_property
 from .exceptions import (
     CityAirException, EmptyDataException, NoAccessException, ServerException,
     anonymize_request,
-    TransportException)
+    TransportException,
+)
 from .settings import (
     DEFAULT_HOST, DEVICES_PACKETS_URL, DEVICES_URL,
     FULL_LOGS_URL, LOGS_URL, LOG_CHECKINFO_ADDITIONAL_FILTER_SUFFIX,
@@ -72,8 +73,8 @@ class CityAirRequest:
             try:
                 token = os.environ[TOKEN_VAR_NAME]
             except KeyError:
-                msg = f"Could not find \"{TOKEN_VAR_NAME}\" in environment " \
-                    f"variables"
+                msg = (f"Could not find \"{TOKEN_VAR_NAME}\" in environment "
+                       f"variables")
                 if silent:
                     raise ValueError(msg)
                 token = input(f"{msg}\n please specify you cityair.io token: ")
