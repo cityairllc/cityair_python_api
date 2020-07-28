@@ -86,11 +86,10 @@ def add_progress_bar(method):
         start_date = to_date(kwargs.get('start_date'))
         if not start_date:
             return method(*args, **kwargs)
-        finish_date = to_date(kwargs.get('finish_date',
-                                         datetime.datetime.utcnow().replace(
-                                                 tzinfo=pytz.utc)))
-        start_date = start_date.replace(tzinfo=None)
-        finish_date = finish_date.replace(tzinfo=None)
+        finish_date = to_date(
+            kwargs.get('finish_date', datetime.datetime.utcnow()))
+        start_date = start_date.replace(tzinfo=pytz.utc)
+        finish_date = finish_date.replace(tzinfo=pytz.utc)
         kwargs.update(take_count=kwargs.get('take_count', default_take_count))
         bar = progressbar.ProgressBar(max_value=(finish_date - start_date)
                                       .total_seconds() / progress_scaler,
