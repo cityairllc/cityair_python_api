@@ -1,4 +1,4 @@
-import datetime
+from datetime import datetime, timedelta
 import json
 import logging
 import os
@@ -314,7 +314,7 @@ class CityAirRequest:
             filter_['TimeBegin'] = to_date(start_date).isoformat()
             filter_['TimeEnd'] = to_date(
                     finish_date).isoformat() if finish_date else \
-                datetime.datetime.now().isoformat()
+                datetime.now().isoformat()
         else:
             filter_['FilterType'] = 3
             filter_['Skip'] = skip_count
@@ -447,8 +447,9 @@ class CityAirRequest:
                     f"formats are: 'list', 'df', 'dicts', 'raw'")
 
     @add_progress_bar
-    def get_station_data(self, station_id: int, start_date=None,
-                         finish_date=datetime.datetime.now(),
+    def get_station_data(self, station_id: int,
+                         start_date: Union[str, datetime, None] = None,
+                         finish_date: Union[str, datetime, None] = None,
                          take_count: int = 1000,
                          period: Period = Period.TWENTY_MINS) -> pd.DataFrame:
         """
@@ -466,20 +467,16 @@ class CityAirRequest:
         verbose: bool, default True:
             whether to show progress bar
         -------"""
+        start_date = start_date or (datetime.now() - timedelta(weeks=1))
+        finish_date = finish_date or datetime.utcnow()
         filter_ = {
                 'TakeCount': take_count,
                 'MoId': station_id,
-                'IntervalType': period.value
+                'IntervalType': period.value,
+                'FilterType': 1,
+                'BeginTime': to_date(start_date, format="str"),
+                'EndTime': to_date(finish_date, format="str")
         }
-        if start_date: # TODO remove filter type 3
-            filter_['FilterType'] = 1
-            filter_['BeginTime'] = to_date(start_date).isoformat()
-            filter_['EndTime'] = to_date(
-                    finish_date).isoformat() if finish_date else \
-                datetime.datetime.now().isoformat()
-        else:
-            filter_['FilterType'] = 3
-            filter_['SkipFromLast'] = 0
         packets = self._make_request(STATIONS_PACKETS_URL, 'Packets',
                                      Filter=filter_, silent=False)
         df = pd.DataFrame.from_records(packets)
@@ -536,7 +533,7 @@ class CityAirRequest:
                  start_date=None, finish_date=None, take_count=1000,
                  app_sender_ids=PACKET_SENDER_IDS, to_include_date=False,
                  extract_pattern=LOG_EXTRACT_PATTERN, filter_pattern="") \
-            -> Iterator[Union[str, Tuple[datetime.datetime, str]]]:
+            -> Iterator[Union[str, Tuple[datetime, str]]]:
         """
         retrieves log records and extracts records of specific types
         Parameters
