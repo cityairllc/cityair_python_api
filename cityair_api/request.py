@@ -306,7 +306,7 @@ class CityAirRequest:
                 'Take': take_count,
                 'DeviceId': device_id
         }
-        if last_packet_id:
+        if last_packet_id is not None:
             filter_['FilterType'] = 2
             filter_['LastPacketId'] = last_packet_id
         elif start_date:
@@ -471,7 +471,7 @@ class CityAirRequest:
                 'MoId': station_id,
                 'IntervalType': period.value
         }
-        if start_date:
+        if start_date: # TODO remove filter type 3
             filter_['FilterType'] = 1
             filter_['BeginTime'] = to_date(start_date).isoformat()
             filter_['EndTime'] = to_date(

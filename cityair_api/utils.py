@@ -179,7 +179,7 @@ def parse_checkinfo(msg: str) -> List[dict]:
     return parsed_checkinfo
 
 
-def to_date(date: Optional[Union[datetime.datetime, str]],
+def to_date(date: Union[datetime.datetime, str, None],
             format: str = 'date') -> Optional[Union[str, datetime.datetime]]:
     """
 

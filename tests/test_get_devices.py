@@ -1,9 +1,9 @@
-from cityair_api import CAR
 import pandas as pd
 
+from api_test_case import CityAirApiTestCase
 
-class TestGetDevices:
-    r = CAR(verify_ssl=False)
+
+class TestGetDevices(CityAirApiTestCase):
 
     def test_device_list(self):
         serials = self.r.get_devices()
