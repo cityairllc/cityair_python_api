@@ -54,7 +54,7 @@ RIGHT_PARAMS_NAMES = {
         'NameRu': 'name_ru',
         'PacketId': 'packet_id',
         "Humidity_": "RH"
-}
+        }
 USELESS_COLS = ['220', 'BatLow', 'receive_date', 'GeoInfo', 'Geo', 'Date',
                 'SendDate', 'ResetMoData', 'description', 'coordinates',
                 'rssi', 'FlagBatLowHasFailed', 'FlagPs220HasFailed',
@@ -87,7 +87,7 @@ def add_progress_bar(method):
         if not start_date:
             return method(*args, **kwargs)
         finish_date = to_date(
-            kwargs.get('finish_date', datetime.datetime.utcnow()))
+                kwargs.get('finish_date', datetime.datetime.utcnow()))
         start_date = start_date.replace(tzinfo=pytz.utc)
         finish_date = finish_date.replace(tzinfo=pytz.utc)
         kwargs.update(take_count=kwargs.get('take_count', default_take_count))
@@ -101,7 +101,7 @@ def add_progress_bar(method):
                                               progressbar.Timer(),
                                               progressbar.Bar(),
                                               progressbar.ETA()
-                                      ],
+                                              ],
                                       max_error=False
                                       )
         if kwargs.get('format', 'df') == 'df':
@@ -240,6 +240,9 @@ def prep_df(df: pd.DataFrame, right_param_names: dict = RIGHT_PARAMS_NAMES,
     return res
 
 
+logger = logging.getLogger(__name__)
+
+
 def timeit(method):
     """
     Decorator to print time elapsed
@@ -252,7 +255,7 @@ def timeit(method):
         result = method(*args, **kwargs)
         te = time.time()
 
-        logging.debug(
+        logger.debug(
                 f"{te - ts:.2f} seconds took to {method.__name__} of size"
                 f"{sys.getsizeof(result) / 1000: .2f} KB\nargs were"
                 f" {', '.join(map(str, args[1:]))}\nkwargs were: {kwargs}")

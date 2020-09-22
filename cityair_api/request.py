@@ -79,6 +79,8 @@ class CityAirRequest:
                     raise ValueError(msg)
                 token = input(f"{msg}\n please specify you cityair.io token: ")
             self.token = token
+        self.logger = logging.getLogger(__name__)
+
 
     @cached_property
     def _device_by_serial(self):
@@ -171,7 +173,7 @@ class CityAirRequest:
         try:
             response = requests.post(url, json=body, timeout=self.timeout,
                                      verify=self.verify_ssl)
-            logging.debug("post request to url: %s\n"
+            self.logger.debug("post request to url: %s\n"
                           "body:%s", url, pformat(body))
         except requests.exceptions.ConnectionError as e:
             raise CityAirException(f"Got connection error: {e}") from e
@@ -190,7 +192,7 @@ class CityAirRequest:
             if len(response_data[key]) == 0:
                 if not silent:
                     raise EmptyDataException(response=response)
-                logging.warning("There are no %s available.\n"
+                self.logger.warning("There are no %s available.\n"
                                 "url:%s\n"
                                 "filter%s", key, url, anonymize_request(body))
         if len(keys) == 0:
