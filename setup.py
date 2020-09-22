@@ -15,4 +15,4 @@ setup(
         install_requires=[
                 'pandas', 'requests', 'progressbar2==3.50.1',
                 'cached-property'],
-)
+        )

@@ -1,10 +1,10 @@
-from datetime import datetime, timedelta
 import json
 import logging
 import os
 import re
 from collections import Counter
 from collections.abc import Iterable
+from datetime import datetime, timedelta
 from enum import Enum
 from pprint import pformat
 from typing import Dict, Iterator, List, Optional, Tuple, Union
@@ -15,9 +15,8 @@ from cached_property import cached_property
 
 from .exceptions import (
     CityAirException, EmptyDataException, NoAccessException, ServerException,
-    anonymize_request,
-    TransportException,
-)
+    TransportException, anonymize_request,
+    )
 from .settings import (
     DEFAULT_HOST, DEVICES_PACKETS_URL, DEVICES_URL,
     FULL_LOGS_URL, LOGS_URL, LOG_CHECKINFO_ADDITIONAL_FILTER_SUFFIX,
@@ -25,13 +24,13 @@ from .settings import (
     LOG_PACKET_ADDITIONAL_FILTER_SUFFIX, LOG_PACKET_FILTER_PATTERN,
     PACKET_SENDER_IDS, STATIONS_PACKETS_URL, STATIONS_URL,
     TOKEN_VAR_NAME,
-)
+    )
 from .utils import (
     MAIN_DEVICE_PARAMS, MAIN_STATION_PARAMS, RIGHT_PARAMS_NAMES,
     USELESS_COLS, add_progress_bar,
     parse_checkinfo, prep_df, prep_dicts, timeit, to_date,
     unpack_cols,
-)
+    )
 
 
 class Period(Enum):
@@ -81,7 +80,6 @@ class CityAirRequest:
             self.token = token
         self.logger = logging.getLogger(__name__)
 
-
     @cached_property
     def _device_by_serial(self):
         devices_data = self._make_request(DEVICES_URL, "Devices")
@@ -111,7 +109,7 @@ class CityAirRequest:
         return dict(zip(
                 [info['ValueType'] for info in value_types_data],
                 [info['TypeName'] for info in value_types_data]
-        ))
+                ))
 
     @cached_property
     def _device_by_id(self):
@@ -174,7 +172,7 @@ class CityAirRequest:
             response = requests.post(url, json=body, timeout=self.timeout,
                                      verify=self.verify_ssl)
             self.logger.debug("post request to url: %s\n"
-                          "body:%s", url, pformat(body))
+                              "body:%s", url, pformat(body))
         except requests.exceptions.ConnectionError as e:
             raise CityAirException(f"Got connection error: {e}") from e
         try:
@@ -193,8 +191,9 @@ class CityAirRequest:
                 if not silent:
                     raise EmptyDataException(response=response)
                 self.logger.warning("There are no %s available.\n"
-                                "url:%s\n"
-                                "filter%s", key, url, anonymize_request(body))
+                                    "url:%s\n"
+                                    "filter%s", key, url,
+                                    anonymize_request(body))
         if len(keys) == 0:
             return response_data
         elif len(keys) == 1:
@@ -307,7 +306,7 @@ class CityAirRequest:
         filter_ = {
                 'Take': take_count,
                 'DeviceId': device_id
-        }
+                }
         if last_packet_id is not None:
             filter_['FilterType'] = 2
             filter_['LastPacketId'] = last_packet_id
@@ -478,7 +477,7 @@ class CityAirRequest:
                 'FilterType': 1,
                 'BeginTime': to_date(start_date, format="str"),
                 'EndTime': to_date(finish_date, format="str")
-        }
+                }
         packets = self._make_request(STATIONS_PACKETS_URL, 'Packets',
                                      Filter=filter_, silent=False)
         df = pd.DataFrame.from_records(packets)
@@ -589,7 +588,7 @@ class CityAirRequest:
                 'EventTypeIds': [],
                 'MaxLogItemsCount': take_count,
                 'MessageFilterString': serial_number
-        }
+                }
         log_items = self._make_request(LOGS_URL, "LogsItems", Filter=filter_)
         filtered_log_items = filter(
                 lambda item: filter_re.search(item['MessageShort']),
