@@ -33,10 +33,10 @@ class TransportException(CityAirException):
 
     def __init__(self, response: requests.models.Response):
         body = anonymize_request(
-            json.loads(response.request.body.decode('utf-8')))
+                json.loads(response.request.body.decode('utf-8')))
         message = (f"Error while getting data:\n"
                    f"url: {response.url}\n"
-                   f"request body: {body}\n"
+                   f"request body: {json.dumps(body)}\n"
                    f"request headers: {response.headers}\n"
                    f"response code: {response.status_code}"
                    f"response headers: {response.headers}"
@@ -51,10 +51,10 @@ class ServerException(CityAirException):
 
     def __init__(self, response: requests.models.Response):
         body = anonymize_request(
-            json.loads(response.request.body.decode('utf-8')))
+                json.loads(response.request.body.decode('utf-8')))
         message = (f"Error while getting data:\n"
                    f"url: {response.url}\n"
-                   f"request body: {body}\n")
+                   f"request body: {json.dumps(body)}\n")
         try:
             message += (f"{response.json()['ErrorMessage']}:\n"
                         f"{response.json().get('ErrorMessageDetals')}")
@@ -70,11 +70,12 @@ class EmptyDataException(CityAirException):
 
     def __init__(self, response: requests.models.Response = None, item=None):
         message = ("No data for the request. Try changing query arguments, "
-                   "i.e. start_date or finish_date.")
+                   "i.e. start_date or finish_date.\n")
         if response:
             body = anonymize_request(
-                json.loads(response.request.body.decode('utf-8')))
-            message += f"\nurl: {response.url}\nrequest body: {body}\n"
+                    json.loads(response.request.body.decode('utf-8')))
+            message += (f"url: {response.url}\n"
+                        f"request body: {json.dumps(body)}\n")
         if item:
             message = message.replace("request", f"{item}")
         super().__init__(message)

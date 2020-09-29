@@ -386,7 +386,7 @@ class CityAirRequest:
                     f"formats are: 'df', 'dict'")
 
     def get_stations(self, format: str = 'list',
-                     include_offline: bool = True
+                     include_offline: bool = True, include_3rd_party=False,
                      ) -> Union[List[str], pd.DataFrame, List[dict]]:
         """
         Provides devices information in various formats
@@ -402,6 +402,8 @@ class CityAirRequest:
             server, other params are ignored
         include_offline: bool, default True
            whether to include offline devices to the output
+        include_3rd_party: bool, default False
+            whether to include 3rd party sources (not having devices)
         -------"""
         locations_data, stations_data, devices_data = self._make_request(
                 STATIONS_URL, "Locations",
@@ -429,7 +431,9 @@ class CityAirRequest:
         df.drop(['devices_auto', 'devices_manual'], axis=1, inplace=True)
         df['location'] = df['location'].apply(
                 lambda id_: locations.get(id_, None) if id_ else None)
-
+        if not include_3rd_party:
+            df = df[df["devices"].apply(lambda serials: any(
+                    filter(lambda serial: serial.startswith("CA"), serials)))]
         if not include_offline:
             df = df[df['is_online']]
         if format == 'dicts':

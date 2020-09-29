@@ -1,15 +1,14 @@
 import random
-import pandas as pd
 
+import pandas as pd
 from api_test_case import CityAirApiTestCase
-from cityair_api import CAR
 
 
 class TestMainMethods(CityAirApiTestCase):
     def setup(self):
         self.serial_number = random.choice(self.r.get_devices())
-        self.station_id = random.choice(self.r.get_stations(include_offline=False))
-
+        self.station_id = random.choice(
+            self.r.get_stations(include_offline=False))
 
     def test_get_devices(self):
         devices = self.r.get_devices()

@@ -88,8 +88,6 @@ def add_progress_bar(method):
             return method(*args, **kwargs)
         finish_date = to_date(
                 kwargs.get('finish_date', datetime.datetime.utcnow()))
-        start_date = start_date.replace(tzinfo=pytz.utc)
-        finish_date = finish_date.replace(tzinfo=pytz.utc)
         kwargs.update(take_count=kwargs.get('take_count', default_take_count))
         bar = progressbar.ProgressBar(max_value=(finish_date - start_date)
                                       .total_seconds() / progress_scaler,
@@ -122,11 +120,12 @@ def add_progress_bar(method):
                 start_date += datetime.timedelta(days=2)
             kwargs.update(
                     start_date=start_date + datetime.timedelta(seconds=30))
-            bar.update(bar.max_value - (
-                    finish_date - start_date).total_seconds() /
-                       progress_scaler)
-        size = len(res) if isinstance(res, pd.DataFrame) \
-            else max(map(len, res.values()))
+            fetched_seconds = (finish_date.replace(tzinfo=pytz.utc)
+                               - start_date.replace(
+                        tzinfo=pytz.utc)).total_seconds()
+            bar.update(bar.max_value - (fetched_seconds / progress_scaler))
+        size = len(res) if isinstance(res, pd.DataFrame) else max(
+                map(len, res.values()))
         logging.info(f'finished acquiring {args[1]} data of size {size}')
         if size == 0:
             raise EmptyDataException
@@ -193,7 +192,7 @@ def to_date(date: Union[datetime.datetime, str, None],
     if isinstance(date, datetime.datetime):
         pass
     elif isinstance(date, str):
-        return pd.to_datetime(date, dayfirst=True, utc=True)
+        date = pd.to_datetime(date, dayfirst=True)
     else:
         raise ValueError(f"date should be 'str' or 'datetime', "
                          f"got {type(date)} instead")
@@ -201,7 +200,7 @@ def to_date(date: Union[datetime.datetime, str, None],
     if format == 'str':
         return date.isoformat()
     elif format == 'date':
-        return date
+        return date.replace(tzinfo=None)
     else:
         raise ValueError(f"format arg should be one of the 'str', 'date', "
                          f"got {format} instead")
