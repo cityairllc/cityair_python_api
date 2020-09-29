@@ -1,13 +1,12 @@
 import json
 import logging
 import os
-import re
 from collections import Counter
 from collections.abc import Iterable
 from datetime import datetime, timedelta
 from enum import Enum
 from pprint import pformat
-from typing import Dict, Iterator, List, Optional, Tuple, Union
+from typing import Dict, List, Union
 
 import pandas as pd
 import requests
@@ -19,16 +18,13 @@ from .exceptions import (
     )
 from .settings import (
     DEFAULT_HOST, DEVICES_PACKETS_URL, DEVICES_URL,
-    FULL_LOGS_URL, LOGS_URL, LOG_CHECKINFO_ADDITIONAL_FILTER_SUFFIX,
-    LOG_CHECKINFO_FILTER_PATTERN, LOG_EXTRACT_PATTERN,
-    LOG_PACKET_ADDITIONAL_FILTER_SUFFIX, LOG_PACKET_FILTER_PATTERN,
-    PACKET_SENDER_IDS, STATIONS_PACKETS_URL, STATIONS_URL,
+    STATIONS_PACKETS_URL, STATIONS_URL,
     TOKEN_VAR_NAME,
     )
 from .utils import (
     MAIN_DEVICE_PARAMS, MAIN_STATION_PARAMS, RIGHT_PARAMS_NAMES,
     USELESS_COLS, add_progress_bar,
-    parse_checkinfo, prep_df, prep_dicts, timeit, to_date,
+    prep_df, prep_dicts, timeit, to_date,
     unpack_cols,
     )
 
@@ -516,149 +512,6 @@ class CityAirRequest:
             location_data['stations'] = stations_by_location.get(
                     location_data.get('name'))
         return locations_data
-
-    def _expand_log_item(self, log_item: dict, extract_re) -> dict:
-        """
-        if log items has longer version it's making request and
-        retrieves full version
-        adds "msg" key to the log_item
-        also extracts packet and adds "packet" key to the log_item
-        """
-        if log_item['IsMessageExt']:
-            full_log_items = self._make_request(FULL_LOGS_URL,
-                                                "LogsItems",
-                                                LogIds=[log_item["LogId"]])
-            log_item.update(msg=full_log_items[0]['Message'])
-        else:
-            log_item.update(msg=log_item['MessageShort'])
-        log_item.update(packet=extract_re.search(log_item['msg']).group(1))
-        return log_item
-
-    def get_logs(self, serial_number: str, type: str = "packet",
-                 start_date=None, finish_date=None, take_count=1000,
-                 app_sender_ids=PACKET_SENDER_IDS, to_include_date=False,
-                 extract_pattern=LOG_EXTRACT_PATTERN, filter_pattern="") \
-            -> Iterator[Union[str, Tuple[datetime, str]]]:
-        """
-        retrieves log records and extracts records of specific types
-        Parameters
-        ----------
-        serial_number: str
-            serial of the device, also could be any string for backend to
-            filter
-            log messages
-        type: str {'packet', 'checkinfo', 'custom'}, default 'packet'
-            * 'packet' - searching log messages for raw_packets sent by device
-            * 'checkinfo' - searching for check info packets
-            * 'custom' - to auto filtering is performed, extract_pattern and
-              search_pattern args should be provided to perform filtering
-        start_date: datetime or str, default None
-        finish_date: datetime or str, default None
-        take_count: int, default 1000
-            packets count are fetched before filtering
-        app_sender_ids: dict, default [{"AppId": 4, "SenderIds": [23]},
-                                       {"AppId": 2, "SenderIds": [7]}]
-            passed to backend for filtering,
-        to_include_date: bool, default False
-            if to include date to the return
-        extract_pattern: str, default "#([^']*)##"
-            regex for extraction of packet from log message
-        filter_pattern: str, r"#PT#d+" if type='packet'
-                             "#CheckInfo#{[^']*}" if type='checkinfo'
-            regex for filtering log records
-        Returns
-        -------
-            list of log_messages or tuples(datetime, log_message)
-
-        """
-        if type == 'packet':
-            filter_pattern = LOG_PACKET_FILTER_PATTERN
-            serial_number += LOG_PACKET_ADDITIONAL_FILTER_SUFFIX
-        elif type == 'checkinfo':
-            filter_pattern = LOG_CHECKINFO_FILTER_PATTERN
-            serial_number += LOG_CHECKINFO_ADDITIONAL_FILTER_SUFFIX
-        elif type == 'custom':
-            pass
-        else:
-            raise ValueError("type arg should one of the ('packet', "
-                             "'checkinfo', 'custom')")
-        filter_re = re.compile(filter_pattern)
-        extract_re = re.compile(extract_pattern)
-
-        filter_ = {
-                'AppSenderIds': app_sender_ids,
-                'BeginDate': to_date(start_date, format='str'),
-                'EndDate': to_date(finish_date, format='str'),
-                'EventTypeIds': [],
-                'MaxLogItemsCount': take_count,
-                'MessageFilterString': serial_number
-                }
-        log_items = self._make_request(LOGS_URL, "LogsItems", Filter=filter_)
-        filtered_log_items = filter(
-                lambda item: filter_re.search(item['MessageShort']),
-                log_items)
-        full_items = map(lambda item: self._expand_log_item(item, extract_re),
-                         filtered_log_items)
-
-        for log_item in full_items:
-            if to_include_date:
-                yield to_date(log_item['Time']), log_item['packet']
-            else:
-                yield log_item['packet']
-
-    def get_last_log(self, serial_number: str, type: str = "packet") -> str:
-        """
-        retrieves log records and extracts records of specific types
-        Parameters
-        ----------
-        serial_number: str
-        type: str {'packet', 'checkinfo'}, default 'packet'
-            * 'packet' - searching log messages for raw_packets sent by device
-            * 'checkinfo' - searching for check info packets
-        Returns
-        -------
-            last log message
-
-        """
-        if type not in ('packet', 'checkinfo'):
-            raise ValueError(
-                    "type arg shoud be either 'packet' or 'checkinfo'")
-        msgs = self.get_logs(serial_number, type=type, take_count=1)
-        return next(msgs)
-
-    def get_last_rawpacket(self, serial_number: str) -> Optional[str]:
-        """
-        retrieves filtered log records and extracts packet sent by device
-        Parameters
-        ----------
-        serial_number: str
-        Returns
-        -------
-            last raw packet
-
-        """
-        msgs = self.get_logs(serial_number, type="packet", take_count=1)
-        try:
-            return next(msgs)
-        except StopIteration:
-            return None
-
-    def get_last_checkinfo(self, serial_number: str) -> Optional[List[dict]]:
-        """
-        retrieves filtered log records and extracts checkinfo sent by device
-        Parameters
-        ----------
-        serial_number: str
-        Returns
-        -------
-            last checkinfo
-
-        """
-        msg = (self.get_logs(serial_number, type="checkinfo", take_count=1))
-        try:
-            return parse_checkinfo(next(msg))
-        except StopIteration:
-            return None
 
 
 CAR = CityAirRequest
