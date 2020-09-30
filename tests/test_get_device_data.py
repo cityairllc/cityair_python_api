@@ -12,7 +12,7 @@ class TestOnlineDeviceData(CityAirApiTestCase):
 
     def test_last_packet(self):
         df = self.r.get_device_data(self.serial, take_count=5)
-        now = datetime.utcnow().replace(tzinfo=utc)
+        now = datetime.utcnow()
         last_packet_date = df.index[-1]
         assert now - last_packet_date < timedelta(hours=1)
 

@@ -1,10 +1,9 @@
 stages:
-  - lint
   - test
   - deploy
 
 flake8:
-  stage: lint
+  stage: test
   image: python:3.7-alpine
   before_script:
     - pip install flake8
