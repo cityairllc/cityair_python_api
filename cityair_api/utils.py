@@ -14,6 +14,7 @@ import pytz
 from cityair_api.settings import CHECKINFO_PARSE_PATTERN
 from .exceptions import EmptyDataException
 
+logger = logging.getLogger(__name__)
 RIGHT_PARAMS_NAMES = {
         'FlagPs220': '220',
         'RecvDate': 'receive_date', 'Ps220': '220',
@@ -122,13 +123,13 @@ def add_progress_bar(method):
                     start_date=start_date + datetime.timedelta(seconds=30))
             fetched_seconds = (finish_date.replace(tzinfo=pytz.utc)
                                - start_date.replace(
-                        tzinfo=pytz.utc)).total_seconds()
+                            tzinfo=pytz.utc)).total_seconds()
             bar.update(bar.max_value - (fetched_seconds / progress_scaler))
         size = len(res) if isinstance(res, pd.DataFrame) else max(
                 map(len, res.values()))
-        logging.info(f'finished acquiring {args[1]} data of size {size}')
+        logger.info(f'finished acquiring {args[1]} data of size {size}')
         if size == 0:
-            raise EmptyDataException
+            raise EmptyDataException(request_args = kwargs)
         return res
 
     return progressed
@@ -237,9 +238,6 @@ def prep_df(df: pd.DataFrame, right_param_names: dict = RIGHT_PARAMS_NAMES,
     res.rename(right_param_names, axis=1, inplace=True)
     res = res.drop(cols_to_drop, axis=1, errors='ignore')
     return res
-
-
-logger = logging.getLogger(__name__)
 
 
 def timeit(method):
