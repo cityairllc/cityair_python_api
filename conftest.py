@@ -11,15 +11,28 @@ def R():
 
 
 @pytest.fixture(scope="session")
-def online_serial_number(R):
-    serial_number = random.choice(R.get_devices(include_offline=False))
-    return serial_number
+def device_list(R):
+    return R.get_devices()
 
 
 @pytest.fixture(scope="session")
-def random_serial_number(R):
-    serial_number = random.choice(R.get_devices())
-    return serial_number
+def online_device_list(R):
+    return R.get_devices(include_offline=True)
+
+
+@pytest.fixture(scope="session")
+def device_list_with_children(R):
+    return R.get_devices(include_children=True)
+
+
+@pytest.fixture()
+def online_serial_number(online_device_list):
+    return random.choice(online_device_list)
+
+
+@pytest.fixture()
+def random_serial_number(device_list):
+    return random.choice(device_list)
 
 
 @pytest.fixture(scope="session")

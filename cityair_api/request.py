@@ -225,7 +225,7 @@ class CityAirRequest:
 
         if not include_offline:
             df = df[df['is_online']]
-        df_with_children = df.copy()
+        df_with_children = df.copy(deep=True)
         for children in df['children']:
             for child in children:
                 df_with_children = df_with_children.append(child,
