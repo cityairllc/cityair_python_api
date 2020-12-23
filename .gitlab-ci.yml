@@ -33,7 +33,7 @@ pypi:
     - pip install twine
   script:
     - python setup.py sdist
-    - twine upload dist/* -u $PYPI_USER -p $PYPI_PASSWORD
+    - twine upload dist/* -u $PYPI_USER -p $PYPI_PASSWORD --verbose
 
 
 
