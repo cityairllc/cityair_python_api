@@ -249,7 +249,11 @@ class CityAirRequest:
                 res.append(single_dict)
             return res
         elif format == 'list':
-            return list(df.index)
+            devices = df.index
+            if not include_children:
+                devices = filter(lambda device: device.startswith("CA"),
+                                 devices)
+            return list(devices)
         elif format == 'df':
             return df.set_index('serial_number')
         else:
