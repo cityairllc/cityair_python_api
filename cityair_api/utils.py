@@ -129,7 +129,7 @@ def add_progress_bar(method):
                 map(len, res.values()))
         logger.info(f'finished acquiring {args[1]} data of size {size}')
         if size == 0:
-            raise EmptyDataException(request_args = kwargs)
+            raise EmptyDataException(request_args=kwargs)
         return res
 
     return progressed
