@@ -17,7 +17,7 @@ def device_list(R):
 
 @pytest.fixture(scope="session")
 def online_device_list(R):
-    return R.get_devices(include_offline=True)
+    return R.get_devices(include_offline=False)
 
 
 @pytest.fixture(scope="session")
