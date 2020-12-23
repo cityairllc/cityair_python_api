@@ -237,6 +237,7 @@ def prep_df(df: pd.DataFrame, right_param_names: dict = RIGHT_PARAMS_NAMES,
         res.set_index(index_col, inplace=True)
     res.rename(right_param_names, axis=1, inplace=True)
     res = res.drop(cols_to_drop, axis=1, errors='ignore')
+    res = res.sort_index()
     return res
 
 
