@@ -15,6 +15,17 @@ from cityair_api.settings import CHECKINFO_PARSE_PATTERN
 from .exceptions import EmptyDataException
 
 logger = logging.getLogger(__name__)
+
+FATHER_PREFIXES = ["CA", "ROOFTOP", "LAB"]
+
+
+def is_main_device(serial):
+    for prefix in FATHER_PREFIXES:
+        if serial.startswith(prefix):
+            return True
+    return False
+
+
 RIGHT_PARAMS_NAMES = {
         'FlagPs220': '220',
         'RecvDate': 'receive_date', 'Ps220': '220',

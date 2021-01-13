@@ -25,7 +25,7 @@ from .utils import (
     MAIN_DEVICE_PARAMS, MAIN_STATION_PARAMS, RIGHT_PARAMS_NAMES,
     USELESS_COLS, add_progress_bar,
     prep_df, prep_dicts, timeit, to_date,
-    unpack_cols,
+    unpack_cols, is_main_device
     )
 
 
@@ -251,8 +251,7 @@ class CityAirRequest:
         elif format == 'list':
             devices = df.index
             if not include_children:
-                devices = filter(lambda device: device.startswith("CA"),
-                                 devices)
+                devices = filter(is_main_device)
             return list(devices)
         elif format == 'df':
             return df.set_index('serial_number')
