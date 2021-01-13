@@ -251,7 +251,7 @@ class CityAirRequest:
         elif format == 'list':
             devices = df.index
             if not include_children:
-                devices = filter(is_main_device)
+                devices = filter(is_main_device, devices)
             return list(devices)
         elif format == 'df':
             return df.set_index('serial_number')
