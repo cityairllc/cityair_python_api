@@ -1,7 +1,7 @@
 Inroduction
 ^^^^^^^^^^^^^^^^^^^^^
 python package for getting CityAir.io data in the format of Pandas DataFrames for further processing.
-enjoy and feel free to leave a feedback at feedback@cityair.ru
+enjoy and feel free to leave a feedback at service@cityair.io
 
 
 Installing
