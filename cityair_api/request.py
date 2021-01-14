@@ -22,10 +22,9 @@ from .settings import (
     TOKEN_VAR_NAME,
     )
 from .utils import (
-    MAIN_DEVICE_PARAMS, MAIN_STATION_PARAMS, RIGHT_PARAMS_NAMES,
-    USELESS_COLS, add_progress_bar,
-    prep_df, prep_dicts, timeit, to_date,
-    unpack_cols, is_main_device
+    MAIN_DEVICE_PARAMS, MAIN_STATION_PARAMS, RIGHT_PARAMS_NAMES, USELESS_COLS,
+    add_progress_bar, is_main_device, prep_df, prep_dicts, timeit, to_date,
+    unpack_cols,
     )
 
 
@@ -174,7 +173,11 @@ class CityAirRequest:
         try:
             response.raise_for_status()
         except requests.exceptions.HTTPError as e:
-            raise CityAirException(f"Got HTTP error: {e}") from e
+            try:
+                details = response.json().get("ErrorMessage")
+            except Exception:
+                details = ""
+            raise CityAirException(f"Got HTTP error: {e}: {details}") from e
         try:
             response_json = response.json()
         except json.JSONDecodeError as e:
